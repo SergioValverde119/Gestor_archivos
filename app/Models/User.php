@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -11,12 +10,8 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
-
-
-    
     /**
      * The attributes that are mass assignable.
      *
@@ -26,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'cargo', // <-- Agrega este campo aquí
     ];
 
     /**
@@ -50,9 +46,13 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-
-        public function oficiosAsignados(): HasMany
+    
+    /**
+     * Get the oficios assigned to the user.
+     */
+    public function oficiosAsignados(): HasMany
     {
-        return $this->hasMany(oficios::class,'asignado_a_user_id');
+        // Usa la clase Oficio correctamente
+        return $this->hasMany(Oficio::class, 'asignado_a_user_id');
     }
 }

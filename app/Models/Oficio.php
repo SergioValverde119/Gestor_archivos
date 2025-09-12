@@ -45,7 +45,7 @@ class Oficio extends Model
     }
 
     /**
-     * Get the user that owns the oficio.
+        * Get the user to whom the oficio is assigned.
      */
     public function asignadoA(): BelongsTo
     {
