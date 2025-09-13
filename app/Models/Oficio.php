@@ -10,45 +10,37 @@ class Oficio extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
     protected $fillable = [
-        'remitente',
-        'asunto',
-        'situacion',
-        'folio_interno',
-        'fecha_recepcion',
-        'fecha_limite',
-        'prioridad_id',
-        'area_id',
-        'asignado_a_user_id',
-        'status',
+        'remitente', 'asunto', 'situacion', 'folio_interno', 'fecha_recepcion',
+        'fecha_limite', 'prioridad_id', 'area_id', 'asignado_a_user_id', 'status',
     ];
 
-    /**
-     * Get the prioridad that owns the oficio.
-     */
+    // 1. Casting de atributos para manejar las fechas como objetos de Carbon
+    protected $casts = [
+        'fecha_recepcion' => 'date',
+        'fecha_limite' => 'date',
+    ];
+
+    // 2. Relaciones (ya las tienes, pero es importante que estén)
     public function prioridad(): BelongsTo
     {
         return $this->belongsTo(Prioridad::class);
     }
-
-    /**
-     * Get the area that ownsd the oficio.
-     */
+    
     public function area(): BelongsTo
     {
         return $this->belongsTo(Area::class);
     }
 
-    /**
-        * Get the user to whom the oficio is assigned.
-     */
     public function asignadoA(): BelongsTo
     {
         return $this->belongsTo(User::class, 'asignado_a_user_id');
+    }
+
+    // 3. Un scope local para filtrar oficios vencidos
+    public function scopeVencidos($query)
+    {
+        return $query->where('fecha_limite', '<', now())
+                     ->where('status', '!=', 'Completado');
     }
 }

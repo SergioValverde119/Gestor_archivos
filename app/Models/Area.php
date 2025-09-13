@@ -4,15 +4,23 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Area extends Model
 {
     use HasFactory;
 
     /**
-     * The attributes thaft are mass assignable.
+     * The table associated with the model.
      *
-     * @var array
+     * @var string
+     */
+    protected $table = 'areas';
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
      */
     protected $fillable = [
         'nombre',
@@ -21,7 +29,7 @@ class Area extends Model
     /**
      * Get the oficios for the area.
      */
-    public function oficios()
+    public function oficios(): HasMany
     {
         return $this->hasMany(Oficio::class);
     }
