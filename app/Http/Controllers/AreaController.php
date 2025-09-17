@@ -14,11 +14,9 @@ class AreaController extends Controller
      */
     public function index()
     {
-        $areas = Area::latest()->paginate(10);
+        
 
-        return Inertia::render('Areas/Index', [
-            'areas' => $areas,
-        ]);
+        return Inertia::render('Areas/Index');
     }
 
     /**

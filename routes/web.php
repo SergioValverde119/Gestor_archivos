@@ -6,26 +6,25 @@ use App\Http\Controllers\OficioController;
 use App\Http\Controllers\PrioridadController;
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\pruebaController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
 })->name('home');
 
-Route::get('/prueba', [pruebaController::class, 'prueba']);
 
-Route::middleware(['auth', 'verified'])->group(function () {
 Route::get('dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::resource('oficios', OficioController::class);
-Route::resource('prioridades', PrioridadController::class);
-Route::resource('areas', AreaController::class);
+
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::resource('areas', 'AreaController');
+});
+
 Route::resource('users', UserController::class);
 
 
-});
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
