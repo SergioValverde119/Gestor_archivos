@@ -50,9 +50,10 @@ const referencias = {
   },
 };
 
-// Variables reactivas para el campo de búsqueda y el campo seleccionado
+// Variables reactivas para el campo de búsqueda, el campo seleccionado y la nueva opción
 const searchQuery = ref(props.search || '');
 const searchField = ref(props.field || 'folio_oficio');
+const openInNewTab = ref(false); // Nueva variable para controlar la apertura en nueva pestaña
 
 // Observa los cambios en el campo de búsqueda y en el campo seleccionado
 watch([searchQuery, searchField], debounce(() => {
@@ -120,10 +121,20 @@ const searchFields = [
           </div>
         </div>
         
-        <!-- Botón para crear un nuevo oficio -->
-        <Link :href="referencias.oficios.create().url" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors w-full md:w-auto text-center">
-          Crear Nuevo Oficio
-        </Link>
+        <!-- Controles de acciones -->
+        <div class="flex items-center gap-4 w-full md:w-auto">
+          <!-- Checkbox para abrir en nueva pestaña -->
+          <div class="flex items-center">
+            <input id="openInNewTab" type="checkbox" v-model="openInNewTab" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600" />
+            <label for="openInNewTab" class="ml-2 block text-sm text-gray-900 dark:text-gray-100">
+              Abrir en nueva pestaña
+            </label>
+          </div>
+          <!-- Botón para crear un nuevo oficio -->
+          <Link :href="referencias.oficios.create().url" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors w-full md:w-auto text-center">
+            Crear Nuevo Oficio
+          </Link>
+        </div>
       </div>
 
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 transition-colors duration-300">
@@ -174,7 +185,8 @@ const searchFields = [
                   <a
                     v-if="oficio.documento"
                     :href="`/storage/${oficio.documento.ruta_almacenamiento}`"
-                    target="_blank"
+                    :target="openInNewTab ? '_blank' : '_self'"
+                    :rel="openInNewTab ? 'noopener noreferrer' : ''"
                     class="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-200"
                   >
                     <!-- Icono SVG de documento -->
@@ -187,9 +199,14 @@ const searchFields = [
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div class="flex justify-end space-x-2">
-                    <Link :href="referencias.oficios.show(oficio.id).url" class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200">
-                      Ver
-                    </Link>
+                    <a
+                      :href="referencias.oficios.show(oficio.id).url"
+                      :target="openInNewTab ? '_blank' : '_self'"
+                      :rel="openInNewTab ? 'noopener noreferrer' : ''"
+                      class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200"
+                    >
+                      Ver más detalles
+                    </a>
                     <Link :href="referencias.oficios.edit(oficio.id).url" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-900 dark:hover:text-indigo-200">
                       Editar
                     </Link>

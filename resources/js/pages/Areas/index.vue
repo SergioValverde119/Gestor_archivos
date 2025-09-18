@@ -6,92 +6,184 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm, router } from '@inertiajs/vue3';
-import { LoaderCircle, Trash2 } from 'lucide-vue-next';
+import { LoaderCircle, Trash2, Pencil } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 const props = defineProps<{
     areas: { id: number; nombre: string }[];
 }>();
 
-const form = useForm({
+// Formulario para crear una nueva área
+const createForm = useForm({
     nombre: '',
 });
+
+// Referencia para la ID del área que se está editando
+const editingAreaId = ref<number | null>(null);
+
+// Formulario para editar un área existente
+const editForm = useForm({
+    nombre: '',
+});
+
+// Referencia para el área que se desea eliminar
+const areaToDelete = ref<{ id: number; nombre: string } | null>(null);
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Áreas',
-        href: '/areas',
+        href: '/areas', // Usar un enlace directo para simplificar
     },
 ];
 
-const areaToDelete = ref<{ id: number; nombre: string } | null>(null);
-
-function addArea() {
-    form.post('/areas', {
-        onSuccess: () => form.reset(),
+// Función para guardar una nueva área
+const storeArea = () => {
+    createForm.post('/areas', {
+        preserveScroll: true,
+        onSuccess: () => {
+            createForm.reset();
+        },
     });
-}
+};
 
-function confirmDeletion(area: { id: number; nombre: string }) {
-    if (confirm(`¿Estás seguro de que quieres eliminar el área "${area.nombre}"?`)) {
-        deleteArea(area.id);
+// Función para iniciar la edición de un área
+const startEditing = (area: { id: number; nombre: string }) => {
+    editingAreaId.value = area.id;
+    editForm.nombre = area.nombre;
+};
+
+// Función para cancelar la edición
+const cancelEditing = () => {
+    editingAreaId.value = null;
+    editForm.reset();
+};
+
+// Función para actualizar un área
+const updateArea = (areaId: number) => {
+    editForm.put(`/areas/${areaId}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            cancelEditing();
+        },
+    });
+};
+
+// Función para confirmar la eliminación de un área
+const confirmDeletion = (area: { id: number; nombre: string }) => {
+    areaToDelete.value = area;
+};
+
+// Función para eliminar un área
+const deleteArea = () => {
+    if (areaToDelete.value) {
+        router.delete(`/areas/${areaToDelete.value.id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                areaToDelete.value = null;
+            },
+        });
     }
-}
-
-function deleteArea(areaId: number) {
-    router.delete(`/areas/${areaId}`);
-}
+};
 </script>
 
 <template>
     <Head title="Áreas" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <template #header>
-            <h1 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Gestión de Áreas</h1>
-        </template>
-
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <!-- Contenedor principal del formulario y la tabla -->
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-xl sm:rounded-lg p-6">
-                    <h2 class="text-xl font-bold mb-4 text-gray-800 dark:text-gray-200">Añadir una nueva área</h2>
-
-                    <form @submit.prevent="addArea" class="flex items-end gap-4 mb-8">
-                        <div class="grid gap-2 flex-grow">
-                            <Label for="nombre" class="text-gray-700 dark:text-gray-300">Nombre del área</Label>
-                            <Input id="nombre" type="text" v-model="form.nombre" required />
-                            <InputError :message="form.errors.nombre" />
+        <div class="py-12 px-4 md:px-6">
+            <div class="max-w-4xl mx-auto">
+                <!-- Sección para crear una nueva área -->
+                <div class="bg-white dark:bg-gray-800 shadow-xl rounded-lg p-6 mb-8">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Crear Nueva Área</h2>
+                    <form @submit.prevent="storeArea" class="flex flex-col sm:flex-row items-end gap-4">
+                        <div class="flex-1 w-full">
+                            <Label for="nombre" class="sr-only">Nombre del Área</Label>
+                            <Input
+                                id="nombre"
+                                type="text"
+                                class="w-full"
+                                v-model="createForm.nombre"
+                                placeholder="Nombre del Área"
+                                autocomplete="off"
+                            />
+                            <InputError :message="createForm.errors.nombre" class="mt-2" />
                         </div>
-                        <Button :disabled="form.processing">
-                            <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
-                            Añadir Área
+                        <Button
+                            type="submit"
+                            :disabled="createForm.processing || !createForm.nombre"
+                            class="w-full sm:w-auto"
+                        >
+                            <LoaderCircle v-if="createForm.processing" class="animate-spin mr-2" />
+                            Crear
                         </Button>
                     </form>
+                </div>
 
-                    <h2 class="text-xl font-bold mb-4 text-gray-800 dark:text-gray-200">Listado de Áreas</h2>
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead class="bg-gray-50 dark:bg-gray-700">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nombre</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            <tr v-for="area in areas" :key="area.id">
-                                <td class="px-6 py-4 whitespace-nowrap text-gray-900 dark:text-gray-100">{{ area.nombre }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <!-- Sección para la lista de áreas -->
+                <div class="bg-white dark:bg-gray-800 shadow-xl rounded-lg p-6">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Lista de Áreas</h2>
+                    <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                        <li v-for="area in props.areas" :key="area.id" class="py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <!-- Modo de edición -->
+                            <div v-if="editingAreaId === area.id" class="flex-1 w-full flex items-center gap-2">
+                                <Input
+                                    v-model="editForm.nombre"
+                                    class="flex-1"
+                                    :class="{ 'border-red-500': editForm.errors.nombre }"
+                                    @keyup.enter="updateArea(area.id)"
+                                    @keyup.esc="cancelEditing"
+                                    autocomplete="off"
+                                />
+                                <InputError :message="editForm.errors.nombre" class="mt-2" />
+                                <div class="flex gap-2">
                                     <Button
-                                        @click="confirmDeletion(area)"
-                                        variant="ghost"
-                                        class="hover:bg-red-500 hover:text-white dark:hover:bg-red-600 dark:hover:text-white transition-colors duration-200"
+                                        size="sm"
+                                        @click="updateArea(area.id)"
+                                        :disabled="editForm.processing"
+                                        variant="outline"
                                     >
-                                        <Trash2 class="h-4 w-4" />
+                                        <LoaderCircle v-if="editForm.processing" class="animate-spin mr-2" />
+                                        Guardar
                                     </Button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                                    <Button size="sm" @click="cancelEditing" variant="ghost">
+                                        Cancelar
+                                    </Button>
+                                </div>
+                            </div>
+                            <!-- Modo de visualización -->
+                            <div v-else class="flex-1 w-full text-gray-900 dark:text-gray-100">
+                                {{ area.nombre }}
+                            </div>
+
+                            <!-- Botones de acción -->
+                            <div v-if="editingAreaId !== area.id" class="flex gap-2">
+                                <Button size="sm" @click="startEditing(area)" variant="secondary">
+                                    <Pencil class="w-4 h-4" />
+                                </Button>
+                                <Button size="sm" @click="confirmDeletion(area)" variant="destructive">
+                                    <Trash2 class="w-4 h-4" />
+                                </Button>
+                            </div>
+                        </li>
+                    </ul>
+
+                    <p v-if="props.areas.length === 0" class="text-center text-gray-500 dark:text-gray-400 py-4">
+                        No hay áreas registradas.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Diálogo de confirmación para eliminar -->
+        <div v-if="areaToDelete" class="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex justify-center items-center p-4">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Confirmar Eliminación</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    ¿Estás seguro de que deseas eliminar el área "{{ areaToDelete.nombre }}"? Esta acción no se puede deshacer.
+                </p>
+                <div class="flex justify-end space-x-2">
+                    <Button @click="areaToDelete = null" variant="secondary">Cancelar</Button>
+                    <Button @click="deleteArea" variant="destructive">Eliminar</Button>
                 </div>
             </div>
         </div>

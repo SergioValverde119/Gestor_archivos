@@ -2,22 +2,26 @@
 import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
+import { computed } from 'vue';
 
 // Definir los tipos de las props que recibirá el componente
+interface Documento {
+  id: number;
+  ruta_almacenamiento: string;
+}
+
 interface Oficio {
   id: number;
   folio_oficio: string;
-  remitente: string | null;
   asunto: string | null;
-  situacion: string | null;
-  folio_interno: string | null;
-  fecha_recepcion: string | null;
-  fecha_limite: string | null;
-  prioridad: { id: number; nombre: string } | null;
-  area: { id: number; nombre: string } | null;
-  asignado_a_user: { id: number; name: string } | null;
   status: string;
-  url_archivo: string | null;
+  fecha_recepcion: string | null;
+  remitente: string | null;
+  dependencia_emisora: string | null;
+  dependencia_turno: string | null;
+  documento?: Documento | null; // Propiedad opcional para el documento
+  created_at: string;
+  updated_at: string;
 }
 
 const props = defineProps<{
@@ -28,7 +32,6 @@ const props = defineProps<{
 const referencias = {
   oficios: {
     index: () => ({ url: '/oficios' }),
-    edit: (id: number) => ({ url: `/oficios/${id}/edit` }),
   },
 };
 
@@ -39,101 +42,100 @@ const breadcrumbs: BreadcrumbItem[] = [
     href: referencias.oficios.index().url,
   },
   {
-    title: props.oficio.folio_oficio,
-    href: '', // La página actual no necesita un enlace
+    title: 'Detalles del Oficio',
+    href: '#',
   },
 ];
+
+// Función para formatear las fechas a un formato legible
+const formatDate = (dateString: string | null): string => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+  return date.toLocaleDateString('es-ES', options);
+};
+
+// Determinar si el documento existe para mostrar el botón
+const hasDocumento = computed(() => {
+  return props.oficio.documento && props.oficio.documento.ruta_almacenamiento;
+});
+
+// URL completa del documento
+const documentoUrl = computed(() => {
+  if (hasDocumento.value) {
+    return `/storage/${props.oficio.documento?.ruta_almacenamiento}`;
+  }
+  return '#';
+});
 </script>
 
 <template>
-  <Head :title="`Oficio: ${oficio.folio_oficio}`" />
+  <Head :title="`Detalles: ${oficio.folio_oficio}`" />
   <AppLayout :breadcrumbs="breadcrumbs">
     <div class="p-6">
-      <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">Detalles del Oficio</h1>
+      <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">
+        Detalles del Oficio: {{ oficio.folio_oficio }}
+      </h1>
 
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 transition-colors duration-300">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Folio de Oficio -->
-          <div class="border-b dark:border-gray-700 pb-4">
-            <span class="block text-sm font-medium text-gray-500 dark:text-gray-400">Folio de Oficio</span>
-            <span class="block text-lg font-semibold text-gray-900 dark:text-gray-100">{{ oficio.folio_oficio }}</span>
+        <!-- Contenedor para mostrar la información del oficio -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+          <div>
+            <p class="font-semibold text-gray-600 dark:text-gray-400">Folio de Oficio:</p>
+            <p class="text-gray-900 dark:text-gray-100">{{ oficio.folio_oficio }}</p>
           </div>
-
-          <!-- Estado -->
-          <div class="border-b dark:border-gray-700 pb-4">
-            <span class="block text-sm font-medium text-gray-500 dark:text-gray-400">Estado</span>
-            <span class="block text-lg font-semibold text-gray-900 dark:text-gray-100">{{ oficio.status }}</span>
+          <div>
+            <p class="font-semibold text-gray-600 dark:text-gray-400">Asunto:</p>
+            <p class="text-gray-900 dark:text-gray-100">{{ oficio.asunto || 'N/A' }}</p>
           </div>
-
-          <!-- Remitente (Opcional) -->
-          <div v-if="oficio.remitente" class="border-b dark:border-gray-700 pb-4">
-            <span class="block text-sm font-medium text-gray-500 dark:text-gray-400">Remitente</span>
-            <span class="block text-lg text-gray-800 dark:text-gray-200">{{ oficio.remitente }}</span>
+          <div>
+            <p class="font-semibold text-gray-600 dark:text-gray-400">Estado:</p>
+            <p class="text-gray-900 dark:text-gray-100">{{ oficio.status }}</p>
           </div>
-          
-          <!-- Asunto (Opcional) -->
-          <div v-if="oficio.asunto" class="border-b dark:border-gray-700 pb-4">
-            <span class="block text-sm font-medium text-gray-500 dark:text-gray-400">Asunto</span>
-            <span class="block text-lg text-gray-800 dark:text-gray-200">{{ oficio.asunto }}</span>
+          <div>
+            <p class="font-semibold text-gray-600 dark:text-gray-400">Remitente:</p>
+            <p class="text-gray-900 dark:text-gray-100">{{ oficio.remitente || 'N/A' }}</p>
           </div>
-
-          <!-- Situación (Opcional) -->
-          <div v-if="oficio.situacion" class="border-b dark:border-gray-700 pb-4">
-            <span class="block text-sm font-medium text-gray-500 dark:text-gray-400">Situación</span>
-            <span class="block text-lg text-gray-800 dark:text-gray-200">{{ oficio.situacion }}</span>
+          <div>
+            <p class="font-semibold text-gray-600 dark:text-gray-400">Dependencia Emisora:</p>
+            <p class="text-gray-900 dark:text-gray-100">{{ oficio.dependencia_emisora || 'N/A' }}</p>
           </div>
-
-          <!-- Folio Interno (Opcional) -->
-          <div v-if="oficio.folio_interno" class="border-b dark:border-gray-700 pb-4">
-            <span class="block text-sm font-medium text-gray-500 dark:text-gray-400">Folio Interno</span>
-            <span class="block text-lg text-gray-800 dark:text-gray-200">{{ oficio.folio_interno }}</span>
+          <div>
+            <p class="font-semibold text-gray-600 dark:text-gray-400">Dependencia de Turno:</p>
+            <p class="text-gray-900 dark:text-gray-100">{{ oficio.dependencia_turno || 'N/A' }}</p>
           </div>
-          
-          <!-- Fecha de Recepción (Opcional) -->
-          <div v-if="oficio.fecha_recepcion" class="border-b dark:border-gray-700 pb-4">
-            <span class="block text-sm font-medium text-gray-500 dark:text-gray-400">Fecha de Recepción</span>
-            <span class="block text-lg text-gray-800 dark:text-gray-200">{{ oficio.fecha_recepcion }}</span>
+          <div>
+            <p class="font-semibold text-gray-600 dark:text-gray-400">Fecha de Recepción:</p>
+            <p class="text-gray-900 dark:text-gray-100">{{ formatDate(oficio.fecha_recepcion) }}</p>
           </div>
-
-          <!-- Fecha Límite (Opcional) -->
-          <div v-if="oficio.fecha_limite" class="border-b dark:border-gray-700 pb-4">
-            <span class="block text-sm font-medium text-gray-500 dark:text-gray-400">Fecha Límite</span>
-            <span class="block text-lg text-gray-800 dark:text-gray-200">{{ oficio.fecha_limite }}</span>
+          <div>
+            <p class="font-semibold text-gray-600 dark:text-gray-400">Fecha de Creación:</p>
+            <p class="text-gray-900 dark:text-gray-100">{{ formatDate(oficio.created_at) }}</p>
           </div>
-          
-          <!-- Prioridad (Opcional) -->
-          <div v-if="oficio.prioridad" class="border-b dark:border-gray-700 pb-4">
-            <span class="block text-sm font-medium text-gray-500 dark:text-gray-400">Prioridad</span>
-            <span class="block text-lg text-gray-800 dark:text-gray-200">{{ oficio.prioridad.nombre }}</span>
-          </div>
-
-          <!-- Área (Opcional) -->
-          <div v-if="oficio.area" class="border-b dark:border-gray-700 pb-4">
-            <span class="block text-sm font-medium text-gray-500 dark:text-gray-400">Área</span>
-            <span class="block text-lg text-gray-800 dark:text-gray-200">{{ oficio.area.nombre }}</span>
-          </div>
-          
-          <!-- Asignado a (Opcional) -->
-          <div v-if="oficio.asignado_a_user" class="border-b dark:border-gray-700 pb-4">
-            <span class="block text-sm font-medium text-gray-500 dark:text-gray-400">Asignado a</span>
-            <span class="block text-lg text-gray-800 dark:text-gray-200">{{ oficio.asignado_a_user.name }}</span>
-          </div>
-          
-          <!-- Archivo Adjunto (Opcional) -->
-          <div v-if="oficio.url_archivo" class="pb-4">
-            <span class="block text-sm font-medium text-gray-500 dark:text-gray-400">Archivo Adjunto</span>
-            <a :href="oficio.url_archivo" target="_blank" class="text-blue-500 dark:text-blue-400 hover:underline">
-              Ver/Descargar Archivo
-            </a>
+          <div>
+            <p class="font-semibold text-gray-600 dark:text-gray-400">Última Actualización:</p>
+            <p class="text-gray-900 dark:text-gray-100">{{ formatDate(oficio.updated_at) }}</p>
           </div>
         </div>
 
-        <div class="mt-6 flex justify-end space-x-4">
-          <Link :href="referencias.oficios.index().url" class="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-semibold py-2 px-4 rounded-lg">
+        <!-- Sección de acciones -->
+        <div class="mt-8 flex flex-wrap gap-4 justify-start items-center">
+          <!-- Botón para ver el documento -->
+          <a
+            v-if="hasDocumento"
+            :href="documentoUrl"
+            class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+          >
+            <!-- Icono SVG de documento -->
+            <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+            </svg>
+            Ver Documento
+          </a>
+          
+          <!-- Botón de regreso -->
+          <Link :href="referencias.oficios.index().url" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
             Regresar
-          </Link>
-          <Link :href="referencias.oficios.edit(oficio.id).url" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors">
-            Editar Oficio
           </Link>
         </div>
       </div>
