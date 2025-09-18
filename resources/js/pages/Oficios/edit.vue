@@ -33,8 +33,8 @@ const referencias = {
   },
 };
 
-// Crear un formulario reactivo con useForm
-// Inicializamos el formulario con los datos del oficio que se está editando
+// Crea un formulario reactivo con useForm
+
 const form = useForm({
   folio_oficio: props.oficio.folio_oficio,
   asunto: props.oficio.asunto || '',
@@ -64,21 +64,18 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 // Función para enviar el formulario a la ruta de actualización
 const submit = () => {
-  // Envia un formulario PUT a la ruta de actualización
-  // Inertia maneja el tipo de solicitud automáticamente
+  
   form.post(referencias.oficios.show(props.oficio.id).url, {
     _method: 'put',
-    // La opción 'forceFormData' es necesaria para que Inertia envíe los datos
-    // del formulario como FormData, lo cual es requerido para la carga de archivos.
+    
     forceFormData: true, 
     onSuccess: () => {
       console.log('Oficio actualizado con éxito!');
-      // Puedes agregar lógica adicional aquí, como mostrar un mensaje de éxito
+      
     },
     onError: (errors) => {
       console.error('Error al actualizar el oficio:', errors);
-      // Los errores se manejarán automáticamente por Inertia y estarán disponibles
-      // en la propiedad `errors` de las props
+      
     },
   });
 };
