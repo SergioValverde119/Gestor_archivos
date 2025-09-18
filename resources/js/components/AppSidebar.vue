@@ -2,13 +2,16 @@
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { index, store } from '@/routes/areas';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
 import { BookOpen, CalendarDays, LayoutGrid, LayoutDashboard, FilePlus2, House, Search, Building2  } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
+
+// Obtén la función para alternar y el estado de la barra lateral
+const { toggleSidebar, state } = useSidebar();
 
 const mainNavItems: NavItem[] = [
     {
@@ -57,10 +60,10 @@ const footerNavItems: NavItem[] = [
         <SidebarHeader>
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
-                            <AppLogo />
-                        </Link>
+                    <SidebarMenuButton size="lg">
+                        <div @click="toggleSidebar()">
+                                                        <AppLogo :is-collapsed="state === 'collapsed'" />
+                        </div>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
@@ -72,7 +75,7 @@ const footerNavItems: NavItem[] = [
 
         <SidebarFooter>
         <div> <NavFooter :items="footerNavItems" />
-          <!-- <NavUser /> --></div>
+          </div>
         </SidebarFooter>
     </Sidebar>
     <slot />
