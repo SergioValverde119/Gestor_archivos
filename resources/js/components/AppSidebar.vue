@@ -11,7 +11,7 @@ import AppLogo from './AppLogo.vue';
 // Obtén la función para alternar y el estado de la barra lateral
 const { toggleSidebar, state } = useSidebar();
 
-// Las rutas ya no se generan con "wayfinder", se han reemplazado por URLs fijas.
+
 const mainNavItems: NavItem[] = [
     {
         title: 'Inicio',
@@ -30,7 +30,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Subir Oficio',
-        href: '/oficios/create', // He ajustado la ruta para que sea más específica
+        href: '/oficios/create',
         icon: FilePlus2,
     },
     {
