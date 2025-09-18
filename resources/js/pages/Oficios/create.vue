@@ -4,7 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { ref } from 'vue';
 
-// Objeto de referencias para las rutas, simulando un módulo global o importado.
+// Objeto de referencias para las rutas
 const referencias = {
   oficios: {
     index: () => ({ url: '/oficios' }),
@@ -31,7 +31,7 @@ const form = useForm({
   prioridad_id: null,
   area_id: null,
   asignado_a_user_id: null,
-  status: 'Pendiente', // Establecer un estado inicial predeterminado
+  status: 'Pendiente', 
   archivo: null as File | null,
 });
 
