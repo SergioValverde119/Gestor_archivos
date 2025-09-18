@@ -3,8 +3,6 @@ import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
-import { index, store } from '@/routes/areas';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
 import { BookOpen, CalendarDays, LayoutGrid, LayoutDashboard, FilePlus2, House, Search, Building2  } from 'lucide-vue-next';
@@ -13,30 +11,31 @@ import AppLogo from './AppLogo.vue';
 // Obtén la función para alternar y el estado de la barra lateral
 const { toggleSidebar, state } = useSidebar();
 
+// Las rutas ya no se generan con "wayfinder", se han reemplazado por URLs fijas.
 const mainNavItems: NavItem[] = [
     {
         title: 'Inicio',
-        href: dashboard(),
+        href: '/',
         icon: House,
     },
     {
         title: 'Busqueda',
-        href: dashboard(),
+        href: '/oficios/index',
         icon: Search,
     },
     {
         title: 'Dashboard',
-        href: dashboard(),
+        href: '/dashboard',
         icon: LayoutDashboard,
     },
     {
         title: 'Subir Oficio',
-        href: dashboard(),
+        href: '/oficios/create', // He ajustado la ruta para que sea más específica
         icon: FilePlus2,
     },
     {
         title: 'Areas',
-        href: index(),
+        href: '/areas',
         icon: Building2,
     },
 ];
@@ -62,7 +61,7 @@ const footerNavItems: NavItem[] = [
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg">
                         <div @click="toggleSidebar()">
-                                                        <AppLogo :is-collapsed="state === 'collapsed'" />
+                            <AppLogo :is-collapsed="state === 'collapsed'" />
                         </div>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -74,8 +73,8 @@ const footerNavItems: NavItem[] = [
         </SidebarContent>
 
         <SidebarFooter>
-        <div> <NavFooter :items="footerNavItems" />
-          </div>
+            <div> <NavFooter :items="footerNavItems" />
+            </div>
         </SidebarFooter>
     </Sidebar>
     <slot />

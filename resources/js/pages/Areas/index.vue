@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm, router } from '@inertiajs/vue3';
-import { index, store, destroy } from '@/routes/areas'; 
 import { LoaderCircle, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 
@@ -21,14 +20,14 @@ const form = useForm({
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Áreas',
-        href: index().url,
+        href: '/areas',
     },
 ];
 
 const areaToDelete = ref<{ id: number; nombre: string } | null>(null);
 
 function addArea() {
-    form.post(store().url, {
+    form.post('/areas', {
         onSuccess: () => form.reset(),
     });
 }
@@ -40,7 +39,7 @@ function confirmDeletion(area: { id: number; nombre: string }) {
 }
 
 function deleteArea(areaId: number) {
-    router.delete(destroy(areaId).url);
+    router.delete(`/areas/${areaId}`);
 }
 </script>
 

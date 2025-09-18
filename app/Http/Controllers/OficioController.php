@@ -2,43 +2,43 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\OficioStoreRequest;
 use App\Models\Oficio;
+use App\Models\Documento; // Nuevo: Importa el modelo Documento
 use App\Models\Prioridad;
 use App\Models\Area;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Storage; // Nuevo: Para el almacenamiento de archivos
 
 class OficioController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Muestra la lista de oficios.
      */
     public function index()
     {
-        // Obtener todos los oficios con sus relaciones
-        $oficios = Oficio::with(['prioridad', 'area', 'asignadoA'])
-            ->latest()
-            ->paginate(10);
-
-        // Renderizar la vista de Inertia con los oficios
-        return Inertia::render('Oficios/Index', [
+        // Carga los oficios paginados con sus relaciones
+        $oficios = Oficio::with(['prioridad', 'area', 'asignadoA'])->paginate(10);
+        
+        return Inertia::render('Oficios/index', [
             'oficios' => $oficios,
         ]);
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Muestra el formulario para crear un nuevo oficio.
      */
     public function create()
     {
-        // Obtener datos necesarios para los selectores del formulario
-        $prioridades = Prioridad::all();
-        $areas = Area::all();
-        $users = User::all();
+        // Obtiene las listas de prioridades, áreas y usuarios
+        $prioridades = Prioridad::all(['id', 'nombre']);
+        $areas = Area::all(['id', 'nombre']);
+        $users = User::all(['id', 'name']);
 
-        return Inertia::render('Oficios/Create', [
+        return Inertia::render('Oficios/create', [
             'prioridades' => $prioridades,
             'areas' => $areas,
             'users' => $users,
@@ -46,92 +46,99 @@ class OficioController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Almacena un oficio recién creado en el almacenamiento.
      */
-    public function store(Request $request)
+    public function store(OficioStoreRequest $request)
     {
-        $validatedData = $request->validate([
-            'remitente' => 'required|string|max:255',
-            'asunto' => 'required|string|max:255',
-            'situacion' => 'required|string',
-            'folio_interno' => 'required|string|max:255|unique:oficios,folio_interno',
-            'fecha_recepcion' => 'required|date',
-            'fecha_limite' => 'nullable|date|after_or_equal:fecha_recepcion',
-            'prioridad_id' => 'required|exists:prioridades,id',
-            'area_id' => 'required|exists:areas,id',
-            'asignado_a_user_id' => 'required|exists:users,id',
-            'status' => 'required|string|max:255',
-        ]);
+        // Los datos ya están validados en este punto gracias a OficioStoreRequest
+        $validatedData = $request->validated();
+        
+        // Crea el nuevo oficio con los datos validados
+        $oficio = Oficio::create($validatedData);
 
-        Oficio::create($validatedData);
+        // Si un archivo fue adjuntado, se guarda y se crea un registro en la tabla 'documento'.
+        if ($request->hasFile('archivo')) {
+            $file = $request->file('archivo');
+            
+            // Guarda el archivo y obtiene la ruta
+            $filePath = $file->store('oficios', 'public');
+            
+            // Crea el nuevo registro en la tabla documento
+            Documento::create([
+                'oficio_id' => $oficio->id,
+                'nombre_documento' => $file->getClientOriginalName(),
+                'ruta_almacenamiento' => $filePath,
+                'tipo_documento' => $file->getMimeType(),
+            ]);
+        }
 
-        return redirect()->route('oficios.index')->with('success', 'Oficio creado correctamente.');
+        return redirect()->route('oficios.create')->with('success', 'Oficio y documento guardados exitosamente.');
     }
 
     /**
-     * Display the specified resource.
+     * Muestra los detalles de un oficio específico.
      */
     public function show(Oficio $oficio)
     {
-        // Cargar las relaciones del oficio
+        // Carga las relaciones para mostrarlas en la vista de detalles
         $oficio->load(['prioridad', 'area', 'asignadoA']);
 
-        return Inertia::render('Oficios/Show', [
+        return Inertia::render('Oficios/show', [
             'oficio' => $oficio,
         ]);
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Muestra el formulario para editar un oficio específico.
      */
     public function edit(Oficio $oficio)
     {
-        // Cargar las relaciones para el formulario de edición
-        $oficio->load(['prioridad', 'area', 'asignadoA']);
-
-        return Inertia::render('Oficios/Edit', [
+        // Carga las relaciones para precargar el formulario
+        $prioridades = Prioridad::all(['id', 'nombre']);
+        $areas = Area::all(['id', 'nombre']);
+        $users = User::all(['id', 'name']);
+        
+        return Inertia::render('Oficios/edit', [
             'oficio' => $oficio,
-            'prioridades' => Prioridad::all(),
-            'areas' => Area::all(),
-            'users' => User::all(),
+            'prioridades' => $prioridades,
+            'areas' => $areas,
+            'users' => $users,
         ]);
     }
 
     /**
-     * Update the specified resource in storage.
+     * Actualiza un oficio específico en el almacenamiento.
      */
     public function update(Request $request, Oficio $oficio)
     {
+        // Se valida la petición. La regla 'unique' ignora el oficio actual.
         $validatedData = $request->validate([
+            'folio_oficio' => ['required', 'string', 'max:255', Rule::unique('oficios')->ignore($oficio->id)],
             'remitente' => 'required|string|max:255',
-            'asunto' => 'required|string|max:255',
-            'situacion' => 'required|string',
-            'folio_interno' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('oficios')->ignore($oficio->id),
-            ],
+            'asunto' => 'required|string',
+            'situacion' => 'nullable|string',
+            'folio_interno' => 'nullable|string|max:255',
             'fecha_recepcion' => 'required|date',
-            'fecha_limite' => 'nullable|date|after_or_equal:fecha_recepcion',
+            'fecha_limite' => 'required|date',
             'prioridad_id' => 'required|exists:prioridades,id',
             'area_id' => 'required|exists:areas,id',
             'asignado_a_user_id' => 'required|exists:users,id',
-            'status' => 'required|string|max:255',
+            'status' => 'required|string',
         ]);
 
+        // Actualiza el oficio con los datos validados
         $oficio->update($validatedData);
 
-        return redirect()->route('oficios.index')->with('success', 'Oficio actualizado correctamente.');
+        return redirect()->route('oficios.index')->with('success', 'Oficio actualizado exitosamente.');
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Elimina un oficio específico del almacenamiento.
      */
     public function destroy(Oficio $oficio)
     {
         $oficio->delete();
 
-        return redirect()->route('oficios.index')->with('success', 'Oficio eliminado correctamente.');
+        return redirect()->route('oficios.index')->with('success', 'Oficio eliminado exitosamente.');
     }
 }

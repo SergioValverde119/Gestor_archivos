@@ -18,6 +18,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {
+ /*   Route::get('oficios', function () {
+        return Inertia::render('Oficios/index');
+    })->middleware(['auth', 'verified'])->name('oficios');
+});
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('oficios', function () {
+        return Inertia::render('Oficios/index');
+    })->middleware(['auth', 'verified'])->name('oficios.index');
+});
+
+//Route::middleware(['auth', 'verified'])->group(function () {
     
     Route::get('oficios', [OficioController::class, 'index'])->name('oficios.index');
     Route::get('oficios/create', [OficioController::class, 'create'])->name('oficios.create');
@@ -26,17 +38,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('oficios/{oficio}/edit', [OficioController::class, 'edit'])->name('oficios.edit');
     Route::put('oficios/{oficio}', [OficioController::class, 'update'])->name('oficios.update');
     Route::delete('oficios/{oficio}', [OficioController::class, 'destroy'])->name('oficios.destroy');
+*/
+//
 
-});
 
-
-
-Route::resource('oficios', OficioController::class);
-Route::resource('prioridades', PrioridadController::class);
 Route::resource('areas', AreaController::class);
 Route::resource('users', UserController::class);
+Route::resource('oficios', OficioController::class);
+Route::resource('prioridades', PrioridadController::class);
 
 
+});
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
