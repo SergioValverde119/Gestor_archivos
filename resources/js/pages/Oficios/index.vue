@@ -2,16 +2,21 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { computed, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
 import { debounce } from 'lodash';
 
 // Definir los tipos de las props que recibirá el componente
+interface Documento {
+  ruta_almacenamiento: string;
+}
+
 interface Oficio {
   id: number;
   folio_oficio: string;
   asunto: string | null;
   status: string;
   fecha_recepcion: string | null;
+  documento?: Documento | null; // Propiedad opcional para el documento
 }
 
 interface PaginationLink {
@@ -32,6 +37,7 @@ interface PaginatedOficios {
 const props = defineProps<{
   oficios: PaginatedOficios;
   search?: string;
+  field?: string;
 }>();
 
 // Objeto de referencias para las rutas
@@ -44,17 +50,28 @@ const referencias = {
   },
 };
 
-// Variable reactiva para el campo de búsqueda, inicializada con el valor de la URL
+// Variables reactivas para el campo de búsqueda y el campo seleccionado
 const searchQuery = ref(props.search || '');
+const searchField = ref(props.field || 'folio_oficio');
 
-// Observa los cambios en el campo de búsqueda y actualiza la URL
-watch(searchQuery, debounce((value) => {
+// Observa los cambios en el campo de búsqueda y en el campo seleccionado
+watch([searchQuery, searchField], debounce(() => {
   router.get(
     referencias.oficios.index().url,
-    { search: value },
+    { search: searchQuery.value, field: searchField.value },
     { preserveState: true, replace: true }
   );
 }, 300));
+
+// Función para formatear las fechas a un formato legible
+const formatDate = (dateString: string | null): string => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
 
 // Definir las migas de pan (breadcrumbs)
 const breadcrumbs: BreadcrumbItem[] = [
@@ -62,6 +79,14 @@ const breadcrumbs: BreadcrumbItem[] = [
     title: 'Oficios',
     href: referencias.oficios.index().url,
   },
+];
+
+// Lista de campos disponibles para la búsqueda
+const searchFields = [
+  { value: 'folio_oficio', label: 'Folio de Oficio' },
+  { value: 'asunto', label: 'Asunto' },
+  { value: 'remitente', label: 'Remitente' },
+  { value: 'status', label: 'Estado' },
 ];
 </script>
 
@@ -72,19 +97,26 @@ const breadcrumbs: BreadcrumbItem[] = [
       <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">Lista de Oficios</h1>
 
       <div class="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
-        <!-- Barra de Búsqueda -->
-        <div class="relative w-full md:w-1/3">
-          <input
-            type="text"
-            v-model="searchQuery"
-            placeholder="Buscar por folio de oficio..."
-            class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm pl-10"
-          />
-          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <!-- Icono de lupa SVG -->
-            <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-              <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
-            </svg>
+        <!-- Controles de búsqueda: Menú desplegable y barra de búsqueda -->
+        <div class="flex flex-col sm:flex-row gap-4 w-full md:w-2/3">
+          <select v-model="searchField" class="w-full sm:w-1/2 rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm">
+            <option v-for="field in searchFields" :key="field.value" :value="field.value">
+              {{ field.label }}
+            </option>
+          </select>
+          <div class="relative w-full sm:w-1/2">
+            <input
+              type="text"
+              v-model="searchQuery"
+              placeholder="Escribe para buscar..."
+              class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm pl-10"
+            />
+            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <!-- Icono de lupa SVG -->
+              <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+              </svg>
+            </div>
           </div>
         </div>
         
@@ -111,6 +143,9 @@ const breadcrumbs: BreadcrumbItem[] = [
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Fecha de Recepción
                 </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  Documento
+                </th>
                 <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Acciones
                 </th>
@@ -118,7 +153,7 @@ const breadcrumbs: BreadcrumbItem[] = [
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               <tr v-if="oficios.data.length === 0">
-                <td colspan="5" class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-500 dark:text-gray-400">
+                <td colspan="6" class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-500 dark:text-gray-400">
                   No se encontraron oficios que coincidan con la búsqueda.
                 </td>
               </tr>
@@ -133,7 +168,22 @@ const breadcrumbs: BreadcrumbItem[] = [
                   {{ oficio.status }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {{ oficio.fecha_recepcion || 'N/A' }}
+                  {{ formatDate(oficio.fecha_recepcion) }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                  <a
+                    v-if="oficio.documento"
+                    :href="`/storage/${oficio.documento.ruta_almacenamiento}`"
+                    target="_blank"
+                    class="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-200"
+                  >
+                    <!-- Icono SVG de documento -->
+                    <svg class="h-5 w-5 inline-block mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                    </svg>
+                    Ver
+                  </a>
+                  <span v-else>N/A</span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div class="flex justify-end space-x-2">

@@ -4,27 +4,42 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\OficioStoreRequest;
 use App\Models\Oficio;
-use App\Models\Documento; // Nuevo: Importa el modelo Documento
+use App\Models\Documento;
 use App\Models\Prioridad;
 use App\Models\Area;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Storage; // Nuevo: Para el almacenamiento de archivos
+use Illuminate\Support\Facades\Storage;
 
 class OficioController extends Controller
 {
     /**
      * Muestra la lista de oficios.
+     * Ahora recibe un parámetro 'field' para el campo de búsqueda y carga el documento.
      */
-    public function index()
+    public function index(Request $request)
     {
-        // Carga los oficios paginados con sus relaciones
-        $oficios = Oficio::with(['prioridad', 'area', 'asignadoA'])->paginate(10);
+        // Obtiene los parámetros de búsqueda y campo desde la URL
+        $search = $request->query('search');
+        $field = $request->query('field', 'folio_oficio'); // Por defecto, busca por 'folio_oficio'
+
+        // Construye la consulta para los oficios
+        $query = Oficio::with(['prioridad', 'area', 'asignadoA', 'documento']);
+
+        // Si hay un término de búsqueda, aplica el filtro al campo especificado
+        if ($search) {
+            $query->where($field, 'like', "%{$search}%");
+        }
+
+        // Carga los oficios paginados con sus relaciones y mantiene los parámetros en la URL
+        $oficios = $query->paginate(10)->withQueryString();
         
         return Inertia::render('Oficios/index', [
             'oficios' => $oficios,
+            'search' => $search, // Pasa el término de búsqueda a la vista
+            'field' => $field,   // Pasa el campo de búsqueda a la vista
         ]);
     }
 
@@ -33,7 +48,6 @@ class OficioController extends Controller
      */
     public function create()
     {
-        // Obtiene las listas de prioridades, áreas y usuarios
         $prioridades = Prioridad::all(['id', 'nombre']);
         $areas = Area::all(['id', 'nombre']);
         $users = User::all(['id', 'name']);
@@ -50,20 +64,15 @@ class OficioController extends Controller
      */
     public function store(OficioStoreRequest $request)
     {
-        // Los datos ya están validados en este punto gracias a OficioStoreRequest
         $validatedData = $request->validated();
         
-        // Crea el nuevo oficio con los datos validados
         $oficio = Oficio::create($validatedData);
 
-        // Si un archivo fue adjuntado, se guarda y se crea un registro en la tabla 'documento'.
         if ($request->hasFile('archivo')) {
             $file = $request->file('archivo');
             
-            // Guarda el archivo y obtiene la ruta
             $filePath = $file->store('oficios', 'public');
             
-            // Crea el nuevo registro en la tabla documento
             Documento::create([
                 'oficio_id' => $oficio->id,
                 'nombre_documento' => $file->getClientOriginalName(),
@@ -80,7 +89,6 @@ class OficioController extends Controller
      */
     public function show(Oficio $oficio)
     {
-        // Carga las relaciones para mostrarlas en la vista de detalles
         $oficio->load(['prioridad', 'area', 'asignadoA']);
 
         return Inertia::render('Oficios/show', [
@@ -93,7 +101,6 @@ class OficioController extends Controller
      */
     public function edit(Oficio $oficio)
     {
-        // Carga las relaciones para precargar el formulario
         $prioridades = Prioridad::all(['id', 'nombre']);
         $areas = Area::all(['id', 'nombre']);
         $users = User::all(['id', 'name']);
@@ -111,7 +118,6 @@ class OficioController extends Controller
      */
     public function update(Request $request, Oficio $oficio)
     {
-        // Se valida la petición. La regla 'unique' ignora el oficio actual.
         $validatedData = $request->validate([
             'folio_oficio' => ['required', 'string', 'max:255', Rule::unique('oficios')->ignore($oficio->id)],
             'remitente' => 'required|string|max:255',
@@ -126,7 +132,6 @@ class OficioController extends Controller
             'status' => 'required|string',
         ]);
 
-        // Actualiza el oficio con los datos validados
         $oficio->update($validatedData);
 
         return redirect()->route('oficios.index')->with('success', 'Oficio actualizado exitosamente.');

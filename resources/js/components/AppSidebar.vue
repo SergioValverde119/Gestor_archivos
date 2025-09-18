@@ -20,7 +20,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Busqueda',
-        href: '/oficios/index',
+        href: '/oficios',
         icon: Search,
     },
     {
