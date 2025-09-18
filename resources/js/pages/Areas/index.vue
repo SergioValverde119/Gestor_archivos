@@ -32,7 +32,7 @@ const areaToDelete = ref<{ id: number; nombre: string } | null>(null);
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Áreas',
-        href: '/areas', // Usar un enlace directo para simplificar
+        href: '/areas', 
     },
 ];
 
