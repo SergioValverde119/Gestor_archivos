@@ -29,7 +29,7 @@ class AreaController extends Controller
         ]);
     }
     
-    // ... el resto de tus métodos (create, store, etc.) son correctos
+ 
 
 
     /**
