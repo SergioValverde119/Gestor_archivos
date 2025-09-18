@@ -7,6 +7,13 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
 
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Settings\TwoFactorAuthenticationRequest;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
+use Inertia\Response;
+use Laravel\Fortify\Features;
+
 class AreaController extends Controller
 {
     /**
@@ -14,12 +21,16 @@ class AreaController extends Controller
      */
     public function index()
     {
-        $areas = Area::latest()->paginate(10);
+        // Obtiene todas las áreas, ordenadas por la más reciente
+        $areas = Area::latest()->get();
 
-        return Inertia::render('Areas/Index', [
-            'areas' => $areas,
+        return Inertia::render('Areas/index', [
+           'areas' => $areas, // Pasa la colección de áreas a la vista
         ]);
     }
+    
+    // ... el resto de tus métodos (create, store, etc.) son correctos
+
 
     /**
      * Show the form for creating a new resource.

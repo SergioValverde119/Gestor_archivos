@@ -4,21 +4,42 @@ import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { index, store } from '@/routes/areas';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-vue-next';
+import { BookOpen, CalendarDays, LayoutGrid, LayoutDashboard, FilePlus2, House, Search, Building2  } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 const mainNavItems: NavItem[] = [
     {
+        title: 'Inicio',
+        href: dashboard(),
+        icon: House,
+    },
+    {
+        title: 'Busqueda',
+        href: dashboard(),
+        icon: Search,
+    },
+    {
         title: 'Dashboard',
         href: dashboard(),
-        icon: LayoutGrid,
+        icon: LayoutDashboard,
+    },
+    {
+        title: 'Subir Oficio',
+        href: dashboard(),
+        icon: FilePlus2,
+    },
+    {
+        title: 'Areas',
+        href: index(),
+        icon: Building2,
     },
 ];
 
 const footerNavItems: NavItem[] = [
-    {
+    /*{
         title: 'Github Repo',
         href: 'https://github.com/laravel/vue-starter-kit',
         icon: Folder,
@@ -27,7 +48,7 @@ const footerNavItems: NavItem[] = [
         title: 'Documentation',
         href: 'https://laravel.com/docs/starter-kits#vue',
         icon: BookOpen,
-    },
+    },*/
 ];
 </script>
 
@@ -50,8 +71,8 @@ const footerNavItems: NavItem[] = [
         </SidebarContent>
 
         <SidebarFooter>
-            <NavFooter :items="footerNavItems" />
-            <NavUser />
+        <div> <NavFooter :items="footerNavItems" />
+          <!-- <NavUser /> --></div>
         </SidebarFooter>
     </Sidebar>
     <slot />
