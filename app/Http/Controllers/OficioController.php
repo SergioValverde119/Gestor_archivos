@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Area;
 use App\Models\Oficio;
 use App\Models\Prioridad;
+use App\Models\Area;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
+use Illuminate\Validation\Rule;
 
 class OficioController extends Controller
 {
@@ -17,14 +17,14 @@ class OficioController extends Controller
      */
     public function index()
     {
+        // Obtener todos los oficios con sus relaciones
         $oficios = Oficio::with(['prioridad', 'area', 'asignadoA'])
+            ->latest()
             ->paginate(10);
 
+        // Renderizar la vista de Inertia con los oficios
         return Inertia::render('Oficios/index', [
             'oficios' => $oficios,
-            'prioridades' => Prioridad::all(),
-            'areas' => Area::all(),
-            'users' => User::all(),
         ]);
     }
 
@@ -33,10 +33,15 @@ class OficioController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Oficios/create', [
-            'prioridades' => Prioridad::all(),
-            'areas' => Area::all(),
-            'users' => User::all(),
+        // Obtener datos necesarios para los selectores del formulario
+        $prioridades = Prioridad::all();
+        $areas = Area::all();
+        $users = User::all();
+
+        return Inertia::render('Oficios/Create', [
+            'prioridades' => $prioridades,
+            'areas' => $areas,
+            'users' => $users,
         ]);
     }
 
@@ -46,22 +51,21 @@ class OficioController extends Controller
     public function store(Request $request)
     {
         $validatedData = $request->validate([
-            'folio_oficio' => ['required', 'string', 'max:255', 'unique:oficios,folio_oficio'],
-            'folio_interno' => ['nullable', 'string', 'max:255', 'unique:oficios,folio_interno'],
-            'remitente' => ['nullable', 'string', 'max:255'],
-            'asunto' => ['nullable', 'string'],
-            'fecha_recepcion' => ['nullable', 'date'],
-            'fecha_limite' => ['nullable', 'date'],
-            'situacion' => ['nullable', 'string', 'max:255'],
-            'status' => ['nullable', 'string', 'max:255'],
-            'prioridad_id' => ['nullable', 'exists:prioridades,id'],
-            'area_id' => ['nullable', 'exists:areas,id'],
-            'asignado_a_user_id' => ['nullable', 'exists:users,id'],
+            'remitente' => 'required|string|max:255',
+            'asunto' => 'required|string|max:255',
+            'situacion' => 'required|string',
+            'folio_interno' => 'required|string|max:255|unique:oficios,folio_interno',
+            'fecha_recepcion' => 'required|date',
+            'fecha_limite' => 'nullable|date|after_or_equal:fecha_recepcion',
+            'prioridad_id' => 'required|exists:prioridades,id',
+            'area_id' => 'required|exists:areas,id',
+            'asignado_a_user_id' => 'required|exists:users,id',
+            'status' => 'required|string|max:255',
         ]);
 
         Oficio::create($validatedData);
 
-        return redirect()->route('oficios.index')->with('success', 'Oficio creado exitosamente.');
+        return redirect()->route('oficios.index')->with('success', 'Oficio creado correctamente.');
     }
 
     /**
@@ -69,10 +73,10 @@ class OficioController extends Controller
      */
     public function show(Oficio $oficio)
     {
-        // Cargamos la relación del documento para que esté disponible en el frontend
-        $oficio->load('documento');
+        // Cargar las relaciones del oficio
+        $oficio->load(['prioridad', 'area', 'asignadoA']);
 
-        return Inertia::render('Oficios/show', [
+        return Inertia::render('Oficios/Show', [
             'oficio' => $oficio,
         ]);
     }
@@ -82,9 +86,10 @@ class OficioController extends Controller
      */
     public function edit(Oficio $oficio)
     {
-        $oficio->load('prioridad', 'area', 'asignadoA');
+        // Cargar las relaciones para el formulario de edición
+        $oficio->load(['prioridad', 'area', 'asignadoA']);
 
-        return Inertia::render('Oficios/edit', [
+        return Inertia::render('Oficios/Edit', [
             'oficio' => $oficio,
             'prioridades' => Prioridad::all(),
             'areas' => Area::all(),
@@ -98,22 +103,26 @@ class OficioController extends Controller
     public function update(Request $request, Oficio $oficio)
     {
         $validatedData = $request->validate([
-            'folio_oficio' => ['required', 'string', 'max:255', Rule::unique('oficios')->ignore($oficio->id)],
-            'folio_interno' => ['nullable', 'string', 'max:255', Rule::unique('oficios')->ignore($oficio->id)],
-            'remitente' => ['nullable', 'string', 'max:255'],
-            'asunto' => ['nullable', 'string'],
-            'fecha_recepcion' => ['nullable', 'date'],
-            'fecha_limite' => ['nullable', 'date'],
-            'situacion' => ['nullable', 'string', 'max:255'],
-            'status' => ['nullable', 'string', 'max:255'],
-            'prioridad_id' => ['nullable', 'exists:prioridades,id'],
-            'area_id' => ['nullable', 'exists:areas,id'],
-            'asignado_a_user_id' => ['nullable', 'exists:users,id'],
+            'remitente' => 'required|string|max:255',
+            'asunto' => 'required|string|max:255',
+            'situacion' => 'required|string',
+            'folio_interno' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('oficios')->ignore($oficio->id),
+            ],
+            'fecha_recepcion' => 'required|date',
+            'fecha_limite' => 'nullable|date|after_or_equal:fecha_recepcion',
+            'prioridad_id' => 'required|exists:prioridades,id',
+            'area_id' => 'required|exists:areas,id',
+            'asignado_a_user_id' => 'required|exists:users,id',
+            'status' => 'required|string|max:255',
         ]);
 
         $oficio->update($validatedData);
 
-        return redirect()->route('oficios.index')->with('success', 'Oficio actualizado exitosamente.');
+        return redirect()->route('oficios.index')->with('success', 'Oficio actualizado correctamente.');
     }
 
     /**
@@ -122,6 +131,7 @@ class OficioController extends Controller
     public function destroy(Oficio $oficio)
     {
         $oficio->delete();
-        return redirect()->route('oficios.index')->with('success', 'Oficio eliminado exitosamente.');
+
+        return redirect()->route('oficios.index')->with('success', 'Oficio eliminado correctamente.');
     }
 }
