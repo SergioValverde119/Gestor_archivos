@@ -2,9 +2,13 @@
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { ref } from 'vue';
+import { computed } from 'vue';
 
 // Definir los tipos de las props que recibirá el componente
+interface Documento {
+    ruta_almacenamiento: string;
+}
+
 interface Oficio {
     id: number;
     folio_oficio: string;
@@ -14,35 +18,34 @@ interface Oficio {
     remitente: string | null;
     dependencia_emisora: string | null;
     dependencia_turno: string | null;
-    documento: {
-        ruta_almacenamiento: string;
-    } | null;
+    documento: Documento | null;
 }
 
 const props = defineProps<{
     oficio: Oficio;
-    // Propiedad opcional para recibir errores de validación desde el servidor
-    errors: Record<string, string>;
 }>();
 
-// Objeto de referencias para las rutas
+// Objeto de referencias para las rutas (Solución manual)
 const referencias = {
-    oficios: {
-        index: () => ({ url: '/oficios' }),
-        show: (id: number) => ({ url: `/oficios/${id}` }),
-    },
+  oficios: {
+    index: () => ({ url: '/oficios' }),
+    show: (id: number) => ({ url: `/oficios/${id}` }),
+    update: (id: number) => ({ url: `/oficios/${id}` }), // La URL para actualizar es la misma que para mostrar
+  },
 };
 
 // Crea un formulario reactivo con useForm
+// Se mantiene _method: 'PUT' para que Laravel sepa que es una actualización, incluso si usamos .post() para enviar archivos.
 const form = useForm({
-    folio_oficio: props.oficio.folio_oficio || '', // Corrección para asegurar que el valor sea una cadena de texto
+    _method: 'PUT',
+    folio_oficio: props.oficio.folio_oficio || '',
     asunto: props.oficio.asunto || '',
     status: props.oficio.status || '',
     fecha_recepcion: props.oficio.fecha_recepcion || '',
     remitente: props.oficio.remitente || '',
     dependencia_emisora: props.oficio.dependencia_emisora || '',
     dependencia_turno: props.oficio.dependencia_turno || '',
-    documento: null, // Campo para el nuevo archivo que se subirá
+    documento: null as File | null,
 });
 
 // Definir las migas de pan (breadcrumbs)
@@ -63,8 +66,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 // Función para enviar el formulario a la ruta de actualización
 const submit = () => {
-    // Usamos form.patch() para enviar la solicitud PUT/PATCH
-    form.patch(referencias.oficios.show(props.oficio.id).url, {
+    // Usamos form.post() para poder enviar archivos, Laravel leerá el _method: 'PUT'
+    form.post(referencias.oficios.update(props.oficio.id).url, {
         onSuccess: () => {
             console.log('Oficio actualizado con éxito!');
         },
@@ -75,9 +78,9 @@ const submit = () => {
 };
 
 // Obtenemos la URL para mostrar el documento actual
-const currentDocumentUrl = ref(
-    props.oficio.documento 
-        ? `/storage/${props.oficio.documento.ruta_almacenamiento}` 
+const currentDocumentUrl = computed(() =>
+    props.oficio.documento
+        ? `/storage/${props.oficio.documento.ruta_almacenamiento}`
         : null
 );
 </script>
@@ -100,10 +103,10 @@ const currentDocumentUrl = ref(
                             id="folio_oficio"
                             v-model="form.folio_oficio"
                             class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            :class="{ 'border-red-500': errors.folio_oficio }"
+                            :class="{ 'border-red-500': form.errors.folio_oficio }"
                             autocomplete="off"
                         />
-                        <p v-if="errors.folio_oficio" class="mt-2 text-sm text-red-600">{{ errors.folio_oficio }}</p>
+                        <p v-if="form.errors.folio_oficio" class="mt-2 text-sm text-red-600">{{ form.errors.folio_oficio }}</p>
                     </div>
 
                     <!-- Campo: Asunto -->
@@ -114,10 +117,10 @@ const currentDocumentUrl = ref(
                             id="asunto"
                             v-model="form.asunto"
                             class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            :class="{ 'border-red-500': errors.asunto }"
+                            :class="{ 'border-red-500': form.errors.asunto }"
                             autocomplete="off"
                         />
-                        <p v-if="errors.asunto" class="mt-2 text-sm text-red-600">{{ errors.asunto }}</p>
+                        <p v-if="form.errors.asunto" class="mt-2 text-sm text-red-600">{{ form.errors.asunto }}</p>
                     </div>
 
                     <!-- Campo: Estado -->
@@ -128,10 +131,10 @@ const currentDocumentUrl = ref(
                             id="status"
                             v-model="form.status"
                             class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            :class="{ 'border-red-500': errors.status }"
+                            :class="{ 'border-red-500': form.errors.status }"
                             autocomplete="off"
                         />
-                        <p v-if="errors.status" class="mt-2 text-sm text-red-600">{{ errors.status }}</p>
+                        <p v-if="form.errors.status" class="mt-2 text-sm text-red-600">{{ form.errors.status }}</p>
                     </div>
 
                     <!-- Campo: Fecha de Recepción -->
@@ -142,10 +145,10 @@ const currentDocumentUrl = ref(
                             id="fecha_recepcion"
                             v-model="form.fecha_recepcion"
                             class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            :class="{ 'border-red-500': errors.fecha_recepcion }"
+                            :class="{ 'border-red-500': form.errors.fecha_recepcion }"
                             autocomplete="off"
                         />
-                        <p v-if="errors.fecha_recepcion" class="mt-2 text-sm text-red-600">{{ errors.fecha_recepcion }}</p>
+                        <p v-if="form.errors.fecha_recepcion" class="mt-2 text-sm text-red-600">{{ form.errors.fecha_recepcion }}</p>
                     </div>
 
                     <!-- Campo: Remitente -->
@@ -156,10 +159,10 @@ const currentDocumentUrl = ref(
                             id="remitente"
                             v-model="form.remitente"
                             class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            :class="{ 'border-red-500': errors.remitente }"
+                            :class="{ 'border-red-500': form.errors.remitente }"
                             autocomplete="off"
                         />
-                        <p v-if="errors.remitente" class="mt-2 text-sm text-red-600">{{ errors.remitente }}</p>
+                        <p v-if="form.errors.remitente" class="mt-2 text-sm text-red-600">{{ form.errors.remitente }}</p>
                     </div>
 
                     <!-- Campo: Dependencia Emisora -->
@@ -170,10 +173,10 @@ const currentDocumentUrl = ref(
                             id="dependencia_emisora"
                             v-model="form.dependencia_emisora"
                             class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            :class="{ 'border-red-500': errors.dependencia_emisora }"
+                            :class="{ 'border-red-500': form.errors.dependencia_emisora }"
                             autocomplete="off"
                         />
-                        <p v-if="errors.dependencia_emisora" class="mt-2 text-sm text-red-600">{{ errors.dependencia_emisora }}</p>
+                        <p v-if="form.errors.dependencia_emisora" class="mt-2 text-sm text-red-600">{{ form.errors.dependencia_emisora }}</p>
                     </div>
                     
                     <!-- Campo: Dependencia de Turno -->
@@ -184,19 +187,19 @@ const currentDocumentUrl = ref(
                             id="dependencia_turno"
                             v-model="form.dependencia_turno"
                             class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                            :class="{ 'border-red-500': errors.dependencia_turno }"
+                            :class="{ 'border-red-500': form.errors.dependencia_turno }"
                             autocomplete="off"
                         />
-                        <p v-if="errors.dependencia_turno" class="mt-2 text-sm text-red-600">{{ errors.dependencia_turno }}</p>
+                        <p v-if="form.errors.dependencia_turno" class="mt-2 text-sm text-red-600">{{ form.errors.dependencia_turno }}</p>
                     </div>
 
                     <!-- Campo: Documento (subida de archivo) -->
                     <div>
-                        <label for="documento" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Documento (opcional)</label>
+                        <label for="documento" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Reemplazar Documento (opcional)</label>
                         <input
                             type="file"
                             id="documento"
-                            @input="e => form.documento = (e.target as HTMLInputElement).files[0]"
+                            @input="form.documento = ($event.target as HTMLInputElement).files?.[0] ?? null"
                             class="mt-1 block w-full text-sm text-gray-500
                                 file:mr-4 file:py-2 file:px-4
                                 file:rounded-full file:border-0
@@ -204,7 +207,7 @@ const currentDocumentUrl = ref(
                                 file:bg-blue-50 file:text-blue-700
                                 hover:file:bg-blue-100"
                         />
-                        <p v-if="errors.documento" class="mt-2 text-sm text-red-600">{{ errors.documento }}</p>
+                        <p v-if="form.errors.documento" class="mt-2 text-sm text-red-600">{{ form.errors.documento }}</p>
                         <p v-if="currentDocumentUrl" class="mt-2 text-sm text-gray-500 dark:text-gray-400">
                             Documento actual: <a :href="currentDocumentUrl" target="_blank" class="text-blue-500 hover:underline">Ver documento</a>
                         </p>
@@ -229,3 +232,4 @@ const currentDocumentUrl = ref(
         </div>
     </AppLayout>
 </template>
+

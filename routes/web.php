@@ -6,6 +6,7 @@ use App\Http\Controllers\OficioController;
 use App\Http\Controllers\PrioridadController;
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\Settings\ProfileController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -17,38 +18,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->middleware(['auth', 'verified'])->name('dashboard');
 });
 
-Route::middleware(['auth', 'verified'])->group(function () {
- /*   Route::get('oficios', function () {
-        return Inertia::render('Oficios/index');
-    })->middleware(['auth', 'verified'])->name('oficios');
-});
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('oficios', function () {
-        return Inertia::render('Oficios/index');
-    })->middleware(['auth', 'verified'])->name('oficios.index');
-});
+Route::resource('areas', AreaController::class)->middleware(['auth', 'verified']);
+Route::resource('users', UserController::class)->middleware(['auth', 'verified']);
+Route::resource('oficios', OficioController::class)->middleware(['auth', 'verified']);
+Route::resource('prioridades', PrioridadController::class)->middleware(['auth', 'verified']);
 
-//Route::middleware(['auth', 'verified'])->group(function () {
-    
-    Route::get('oficios', [OficioController::class, 'index'])->name('oficios.index');
-    Route::get('oficios/create', [OficioController::class, 'create'])->name('oficios.create');
-    Route::post('oficios', [OficioController::class, 'store'])->name('oficios.store');
-    Route::get('oficios/{oficio}', [OficioController::class, 'show'])->name('oficios.show');
-    Route::get('oficios/{oficio}/edit', [OficioController::class, 'edit'])->name('oficios.edit');
-    Route::put('oficios/{oficio}', [OficioController::class, 'update'])->name('oficios.update');
-    Route::delete('oficios/{oficio}', [OficioController::class, 'destroy'])->name('oficios.destroy');
-*/
-//
+Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit')->middleware('auth');
+Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update')->middleware('auth');
+Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy')->middleware('auth');
 
 
-Route::resource('areas', AreaController::class);
-Route::resource('users', UserController::class);
-Route::resource('oficios', OficioController::class);
-Route::resource('prioridades', PrioridadController::class);
 
-
-});
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';

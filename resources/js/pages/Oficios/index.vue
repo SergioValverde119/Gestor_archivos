@@ -40,7 +40,7 @@ const props = defineProps<{
   field?: string;
 }>();
 
-// Objeto de referencias para las rutas
+// Objeto de referencias para las rutas (Solución manual temporal)
 const referencias = {
   oficios: {
     index: () => ({ url: '/oficios' }),
@@ -98,7 +98,7 @@ const searchFields = [
       <h1 class="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">Lista de Oficios</h1>
 
       <div class="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
-        <!-- Controles de búsqueda: Menú desplegable y barra de búsqueda -->
+        <!-- Controles de búsqueda -->
         <div class="flex flex-col sm:flex-row gap-4 w-full md:w-2/3">
           <select v-model="searchField" class="w-full sm:w-1/2 rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm">
             <option v-for="field in searchFields" :key="field.value" :value="field.value">
@@ -113,7 +113,6 @@ const searchFields = [
               class="w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm pl-10"
             />
             <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <!-- Icono de lupa SVG -->
               <svg class="h-5 w-5 text-gray-400 dark:text-gray-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                 <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
               </svg>
@@ -123,14 +122,12 @@ const searchFields = [
         
         <!-- Controles de acciones -->
         <div class="flex items-center gap-4 w-full md:w-auto">
-          <!-- Checkbox para abrir en nueva pestaña -->
           <div class="flex items-center">
             <input id="openInNewTab" type="checkbox" v-model="openInNewTab" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600" />
             <label for="openInNewTab" class="ml-2 block text-sm text-gray-900 dark:text-gray-100">
               Abrir en nueva pestaña
             </label>
           </div>
-          <!-- Botón para crear un nuevo oficio -->
           <Link :href="referencias.oficios.create().url" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors w-full md:w-auto text-center">
             Crear Nuevo Oficio
           </Link>
@@ -142,24 +139,12 @@ const searchFields = [
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Folio de Oficio
-                </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Asunto
-                </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Estado
-                </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Fecha de Recepción
-                </th>
-                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Documento
-                </th>
-                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Acciones
-                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Folio de Oficio</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Asunto</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Estado</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fecha de Recepción</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Documento</th>
+                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -169,18 +154,10 @@ const searchFields = [
                 </td>
               </tr>
               <tr v-for="oficio in oficios.data" :key="oficio.id" class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {{ oficio.folio_oficio }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {{ oficio.asunto || 'N/A' }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {{ oficio.status }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {{ formatDate(oficio.fecha_recepcion) }}
-                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{{ oficio.folio_oficio }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ oficio.asunto || 'N/A' }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ oficio.status }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ formatDate(oficio.fecha_recepcion) }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                   <a
                     v-if="oficio.documento"
@@ -189,10 +166,7 @@ const searchFields = [
                     :rel="openInNewTab ? 'noopener noreferrer' : ''"
                     class="text-green-600 dark:text-green-400 hover:text-green-900 dark:hover:text-green-200"
                   >
-                    <!-- Icono SVG de documento -->
-                    <svg class="h-5 w-5 inline-block mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                    </svg>
+                    <svg class="h-5 w-5 inline-block mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>
                     Ver
                   </a>
                   <span v-else>N/A</span>
@@ -220,19 +194,24 @@ const searchFields = [
         <!-- Paginación -->
         <div v-if="oficios.links.length > 3" class="flex justify-center mt-6">
           <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-            <Link
-              v-for="link in oficios.links"
-              :key="link.label"
-              :href="link.url"
-              class="relative inline-flex items-center px-4 py-2 border text-sm font-medium"
-              :class="{
-                'bg-blue-500 text-white dark:bg-blue-600 dark:text-white border-blue-500 dark:border-blue-600': link.active,
-                'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700': !link.active,
-                'opacity-50 pointer-events-none': !link.url,
-              }"
-              v-html="link.label"
-            >
-            </Link>
+            <!-- ¡CORRECCIÓN! Usar un template para iterar y mostrar Link o span condicionalmente -->
+            <template v-for="(link, key) in oficios.links" :key="key">
+              <Link
+                v-if="link.url"
+                :href="link.url"
+                class="relative inline-flex items-center px-4 py-2 border text-sm font-medium"
+                :class="{
+                  'bg-blue-500 text-white dark:bg-blue-600 dark:text-white border-blue-500 dark:border-blue-600': link.active,
+                  'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700': !link.active,
+                }"
+                v-html="link.label"
+              />
+              <span
+                v-else
+                class="relative inline-flex items-center px-4 py-2 border text-sm font-medium bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-300 opacity-50"
+                v-html="link.label"
+              />
+            </template>
           </nav>
         </div>
       </div>
