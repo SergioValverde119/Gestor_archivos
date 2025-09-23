@@ -8,21 +8,26 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
+     *
+     * @return void
      */
     public function up(): void
     {
-        Schema::create('prioridades', function (Blueprint $table) {
+        Schema::create('folio_sequences', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
+            $table->string('name')->unique(); // 'salida', 'interno', etc.
+            $table->unsignedBigInteger('last_number')->default(0);
             $table->timestamps();
         });
     }
 
     /**
-     * 
+     * Reverse the migrations.
+     *
+     * @return void
      */
     public function down(): void
     {
-        Schema::dropIfExists('prioridades');
+        Schema::dropIfExists('folio_sequences');
     }
 };

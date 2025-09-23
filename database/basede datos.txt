@@ -1,0 +1,99 @@
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+
+Table expedientes {
+id integer [primary key, increment]
+numero_expediente varchar [unique]
+titulo varchar
+descripcion text [null]
+created_at timestamp
+updated_at timestamp
+}
+
+Table oficios {
+id integer [primary key, increment]
+expediente_id integer [note: 'Cada oficio pertenece a un expediente']
+tipo ENUM ('entrada', 'salida') [default: 'entrada']
+folio_oficio varchar [unique]
+folio_interno varchar [unique, null]
+remitente varchar [null]
+destinatario varchar [null]
+asunto text
+descripcion text [null]
+fecha_recepcion date [null]
+prioridad ENUM ('Ordinario', 'Urgente', 'Extremadamente Urgente') [null]
+recibido_por_user_id integer [note: 'Usuario que registra el oficio en el sistema']
+oficio_respuesta_id integer [null, note: 'ID del oficio al que este oficio responde']
+status varchar [null]
+resolucion text [null]
+tiene_turno_dgaf boolean [default: false]
+folio_turno_dgaf varchar [null]
+fecha_turno_dgaf date [null]
+created_at timestamp
+updated_at timestamp
+}
+
+Table documentos {
+id integer [primary key, increment]
+oficio_id integer
+nombre_documento varchar
+ruta_almacenamiento varchar
+tipo_documento varchar
+rol_documento ENUM ('principal', 'anexo') [default: 'principal']
+created_at timestamp
+updated_at timestamp
+}
+
+Table users {
+id integer [primary key, increment]
+name varchar
+cargo varchar [null, note: 'Puesto descriptivo, ej: Abogado']
+role ENUM ('admin', 'director', 'jefe_area', 'operativo') [default: 'operativo', note: 'Define los privilegios en el sistema']
+area_id integer [null, note: 'Solo para jefes de area']
+email varchar [unique]
+password varchar
+created_at timestamp
+updated_at timestamp
+}
+
+Table areas {
+id integer [primary key, increment]
+nombre varchar
+created_at timestamp
+updated_at timestamp
+}
+
+Table permissions {
+id integer [primary key, increment]
+user_id integer
+permissible_id integer [note: 'ID del Oficio o Expediente']
+permissible_type varchar [note: "Contiene 'App\Models\Oficio' o 'App\Models\Expediente'"]
+permission_level ENUM ('editor', 'visualizador')
+created_at timestamp
+updated_at timestamp
+}
+
+Table area_expediente {
+id integer [primary key, increment]
+area_id integer
+expediente_id integer
+created_at timestamp
+updated_at timestamp
+}
+
+Table folio_sequences {
+id integer [primary key, increment]
+name varchar [unique, note: "Tipo de folio, ej: 'oficio' o 'interno'"]
+last_number integer [note: 'El último número consecutivo utilizado']
+}
+
+Ref: oficios.expediente_id > expedientes.id
+Ref: oficios.recibido_por_user_id > users.id
+Ref: oficios.oficio_respuesta_id > oficios.id
+Ref: documentos.oficio_id > oficios.id
+Ref: users.area_id > areas.id
+Ref: permissions.user_id > users.id
+// La relación polimórfica de permissions no se puede dibujar directamente en DBML,
+// pero lógicamente apunta a oficios.id o expedientes.id.
+Ref: area_expediente.area_id > areas.id
+Ref: area_expediente.expediente_id > expedientes.id

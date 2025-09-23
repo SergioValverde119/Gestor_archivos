@@ -5,78 +5,91 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, useForm, router } from '@inertiajs/vue3';
+import { Head, useForm, router, Link } from '@inertiajs/vue3';
 import { LoaderCircle, Trash2, Pencil } from 'lucide-vue-next';
 import { ref } from 'vue';
 
+// --- Definición de tipos para la paginación ---
+interface Area {
+    id: number;
+    nombre: string;
+}
+
+interface PaginationLink {
+  url: string | null;
+  label: string;
+  active: boolean;
+}
+
+interface PaginatedAreas {
+  data: Area[];
+  links: PaginationLink[];
+}
+
 const props = defineProps<{
-    areas: { id: number; nombre: string }[];
+    areas: PaginatedAreas; // <-- Espera un objeto paginado
 }>();
 
-// Formulario para crear una nueva área
+// --- Objeto con las rutas escritas a mano (solución temporal) ---
+const referencias = {
+    areas: {
+        index: () => '/areas',
+        store: () => '/areas',
+        update: (id: number) => `/areas/${id}`,
+        destroy: (id: number) => `/areas/${id}`,
+    }
+};
+
 const createForm = useForm({
     nombre: '',
 });
 
-// Referencia para la ID del área que se está editando
 const editingAreaId = ref<number | null>(null);
 
-// Formulario para editar un área existente
 const editForm = useForm({
     nombre: '',
 });
 
-// Referencia para el área que se desea eliminar
-const areaToDelete = ref<{ id: number; nombre: string } | null>(null);
+const areaToDelete = ref<Area | null>(null);
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Áreas',
-        href: '/areas', 
+        href: referencias.areas.index(), 
     },
 ];
 
-// Función para guardar una nueva área
 const storeArea = () => {
-    createForm.post('/areas', {
+    createForm.post(referencias.areas.store(), {
         preserveScroll: true,
-        onSuccess: () => {
-            createForm.reset();
-        },
+        onSuccess: () => createForm.reset(),
     });
 };
 
-// Función para iniciar la edición de un área
-const startEditing = (area: { id: number; nombre: string }) => {
+const startEditing = (area: Area) => {
     editingAreaId.value = area.id;
     editForm.nombre = area.nombre;
 };
 
-// Función para cancelar la edición
 const cancelEditing = () => {
     editingAreaId.value = null;
     editForm.reset();
 };
 
-// Función para actualizar un área
 const updateArea = (areaId: number) => {
-    editForm.put(`/areas/${areaId}`, {
+    editForm.put(referencias.areas.update(areaId), {
         preserveScroll: true,
-        onSuccess: () => {
-            cancelEditing();
-        },
+        onSuccess: () => cancelEditing(),
     });
 };
 
-// Función para confirmar la eliminación de un área
-const confirmDeletion = (area: { id: number; nombre: string }) => {
+const confirmDeletion = (area: Area) => {
     areaToDelete.value = area;
 };
 
-// Función para eliminar un área
 const deleteArea = () => {
     if (areaToDelete.value) {
-        router.delete(`/areas/${areaToDelete.value.id}`, {
+        router.delete(referencias.areas.destroy(areaToDelete.value.id), {
             preserveScroll: true,
             onSuccess: () => {
                 areaToDelete.value = null;
@@ -113,7 +126,7 @@ const deleteArea = () => {
                             :disabled="createForm.processing || !createForm.nombre"
                             class="w-full sm:w-auto"
                         >
-                            <LoaderCircle v-if="createForm.processing" class="animate-spin mr-2" />
+                            <LoaderCircle v-if="createForm.processing" class="animate-spin mr-2 h-4 w-4" />
                             Crear
                         </Button>
                     </form>
@@ -123,7 +136,8 @@ const deleteArea = () => {
                 <div class="bg-white dark:bg-gray-800 shadow-xl rounded-lg p-6">
                     <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Lista de Áreas</h2>
                     <ul class="divide-y divide-gray-200 dark:divide-gray-700">
-                        <li v-for="area in props.areas" :key="area.id" class="py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <!-- Iterar sobre props.areas.data -->
+                        <li v-for="area in props.areas.data" :key="area.id" class="py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                             <!-- Modo de edición -->
                             <div v-if="editingAreaId === area.id" class="flex-1 w-full flex items-center gap-2">
                                 <Input
@@ -142,7 +156,7 @@ const deleteArea = () => {
                                         :disabled="editForm.processing"
                                         variant="outline"
                                     >
-                                        <LoaderCircle v-if="editForm.processing" class="animate-spin mr-2" />
+                                        <LoaderCircle v-if="editForm.processing" class="animate-spin mr-2 h-4 w-4" />
                                         Guardar
                                     </Button>
                                     <Button size="sm" @click="cancelEditing" variant="ghost">
@@ -167,9 +181,27 @@ const deleteArea = () => {
                         </li>
                     </ul>
 
-                    <p v-if="props.areas.length === 0" class="text-center text-gray-500 dark:text-gray-400 py-4">
+                    <p v-if="props.areas.data.length === 0" class="text-center text-gray-500 dark:text-gray-400 py-4">
                         No hay áreas registradas.
                     </p>
+
+                    <!-- Controles de Paginación -->
+                    <div v-if="props.areas.links.length > 3" class="flex justify-center mt-6">
+                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                            <Link
+                                v-for="(link, key) in props.areas.links"
+                                :key="key"
+                                :href="link.url ?? '#'"
+                                class="relative inline-flex items-center px-4 py-2 border text-sm font-medium"
+                                :class="{
+                                    'bg-blue-500 text-white dark:bg-blue-600 dark:text-white border-blue-500 dark:border-blue-600': link.active,
+                                    'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700': !link.active && link.url,
+                                    'opacity-50 pointer-events-none bg-gray-100 dark:bg-gray-900': !link.url,
+                                }"
+                                v-html="link.label"
+                            />
+                        </nav>
+                    </div>
                 </div>
             </div>
         </div>

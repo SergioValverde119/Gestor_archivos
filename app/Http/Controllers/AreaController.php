@@ -16,7 +16,7 @@ class AreaController extends Controller
     {
         $areas = Area::latest()->paginate(10);
 
-        return Inertia::render('Areas/Index', [
+        return Inertia::render('Areas/index', [
            'areas' => $areas,
         ]);
     }
@@ -26,7 +26,7 @@ class AreaController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Areas/Create');
+        return Inertia::render('Areas/create');
     }
 
     /**
@@ -48,7 +48,7 @@ class AreaController extends Controller
      */
     public function show(Area $area)
     {
-        return Inertia::render('Areas/Show', [
+        return Inertia::render('Areas/show', [
             'area' => $area,
         ]);
     }
@@ -58,7 +58,7 @@ class AreaController extends Controller
      */
     public function edit(Area $area)
     {
-        return Inertia::render('Areas/Edit', [
+        return Inertia::render('Areas/edit', [
             'area' => $area,
         ]);
     }

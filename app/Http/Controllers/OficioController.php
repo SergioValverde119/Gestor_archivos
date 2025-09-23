@@ -68,7 +68,7 @@ class OficioController extends Controller
 
         $oficios = $query->latest()->paginate(10)->withQueryString();
 
-        return Inertia::render('Oficios/Index', [
+        return Inertia::render('Oficios/index', [
             'oficios' => $oficios,
             'filters' => $request->only(['search', 'field']),
         ]);
@@ -83,7 +83,7 @@ class OficioController extends Controller
         $nextFolioOficio = $this->getNextFolio('oficio');
         $nextFolioInterno = $this->getNextFolio('interno');
 
-        return Inertia::render('Oficios/Create', [
+        return Inertia::render('Oficios/create', [
             'expedientes' => Expediente::all(['id', 'numero_expediente', 'titulo']),
             // Pasar los nuevos folios a la vista
             'nextFolioOficio' => $nextFolioOficio,
