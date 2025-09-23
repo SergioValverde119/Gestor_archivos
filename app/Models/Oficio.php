@@ -5,7 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Oficio extends Model
 {
@@ -14,80 +15,109 @@ class Oficio extends Model
     /**
      * The attributes that are mass assignable.
      *
-     * @var array<string>
+     * @var array<int, string>
      */
     protected $fillable = [
+        'expediente_id',
+        'tipo',
         'folio_oficio',
         'remitente',
+        'destinatario',
         'asunto',
-        'situacion',
+        'descripcion',
         'folio_interno',
         'fecha_recepcion',
         'fecha_limite',
-        'prioridad_id',
-        'area_id',
-        'asignado_a_user_id',
+        'prioridad',
+        'recibido_por_user_id',
+        'oficio_respuesta_id',
         'status',
+        'resolucion',
+        'tiene_turno_dgaf',
+        'folio_turno_dgaf',
+        'fecha_turno_dgaf',
     ];
 
     /**
      * The relationships that should always be loaded.
      *
-     * @var array<string>
+     * @var array<int, string>
      */
-    protected $with = ['prioridad', 'area', 'asignadoA', 'documento'];
+    protected $with = [
+        'expediente',
+        'documentos',
+        'recibidoPor',
+    ];
 
     /**
      * The attributes that should be cast.
      *
-     * @var array<string, string>
+     * @return array<string, string>
      */
-    protected $casts = [
-        'fecha_recepcion' => 'date',
-        'fecha_limite' => 'date',
-    ];
-
-    /**
-     * Get the prioridad that owns the Oficio.
-     */
-    public function prioridad(): BelongsTo
+    protected function casts(): array
     {
-        return $this->belongsTo(Prioridad::class);
+        return [
+            'fecha_recepcion' => 'date',
+            'fecha_limite' => 'date',
+            'fecha_turno_dgaf' => 'date',
+            'tiene_turno_dgaf' => 'boolean',
+        ];
     }
 
     /**
-     * Get the area that the Oficio belongs to.
+     * El expediente al que pertenece este oficio.
      */
-    public function area(): BelongsTo
+    public function expediente(): BelongsTo
     {
-        return $this->belongsTo(Area::class);
+        return $this->belongsTo(Expediente::class);
     }
 
     /**
-     * Get the user that the Oficio is assigned to.
+     * El usuario que recibió físicamente este oficio.
      */
-    public function asignadoA(): BelongsTo
+    public function recibidoPor(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'asignado_a_user_id');
+        return $this->belongsTo(User::class, 'recibido_por_user_id');
     }
 
     /**
-     * Get the documento record associated with the Oficio.
+     * El oficio original al que este oficio está respondiendo.
      */
-    public function documento(): HasOne
+    public function respuestaA(): BelongsTo
     {
-        return $this->hasOne(Documento::class);
+        return $this->belongsTo(Oficio::class, 'oficio_respuesta_id');
+    }
+    
+    /**
+     * Los oficios que son respuesta a este oficio.
+     */
+    public function respuestas(): HasMany
+    {
+        return $this->hasMany(Oficio::class, 'oficio_respuesta_id');
+    }
+
+    /**
+     * Todos los documentos (principal y anexos) asociados a este oficio.
+     */
+    public function documentos(): HasMany
+    {
+        return $this->hasMany(Documento::class);
+    }
+
+    /**
+     * Los permisos específicos de usuario para este oficio.
+     */
+    public function permissions(): MorphMany
+    {
+        return $this->morphMany(Permission::class, 'permissible');
     }
 
     /**
      * Un scope local para filtrar oficios vencidos.
-     *
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeVencidos($query)
     {
         return $query->where('fecha_limite', '<', now())
-                     ->where('status', '!=', 'Completado');
+                     ->where('status', '!=', 'Resuelto');
     }
 }

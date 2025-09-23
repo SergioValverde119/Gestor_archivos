@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Area extends Model
@@ -11,26 +12,27 @@ class Area extends Model
     use HasFactory;
 
     /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
-    protected $table = 'areas';
-
-    /**
      * The attributes that are mass assignable.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $fillable = [
         'nombre',
     ];
 
     /**
-     * Get the oficios for the area.
+     * Los usuarios que son jefes de esta área.
      */
-    public function oficios(): HasMany
+    public function jefes(): HasMany
     {
-        return $this->hasMany(Oficio::class);
+        return $this->hasMany(User::class);
+    }
+
+    /**
+     * Los expedientes que pertenecen a esta área.
+     */
+    public function expedientes(): BelongsToMany
+    {
+        return $this->belongsToMany(Expediente::class, 'area_expediente');
     }
 }

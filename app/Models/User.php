@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -15,27 +16,31 @@ class User extends Authenticatable
     /**
      * The attributes that are mass assignable.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $fillable = [
         'name',
         'email',
         'password',
-        'cargo', // <-- Agrega este campo aquí
+        'cargo',
+        'role',      // Añadido para los privilegios
+        'area_id',   // Añadido para los jefes de área
     ];
 
     /**
      * The attributes that should be hidden for serialization.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_recovery_codes',
+        'two_factor_secret',
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
      * @return array<string, string>
      */
@@ -46,13 +51,28 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-    
+
     /**
-     * Get the oficios assigned to the user.
+     * El área a la que pertenece el usuario, si es jefe de área.
      */
-    public function oficiosAsignados(): HasMany
+    public function area(): BelongsTo
     {
-        // Usa la clase Oficio correctamente
-        return $this->hasMany(Oficio::class, 'asignado_a_user_id');
+        return $this->belongsTo(Area::class);
+    }
+
+    /**
+     * Los oficios que este usuario ha recibido físicamente.
+     */
+    public function oficiosRecibidos(): HasMany
+    {
+        return $this->hasMany(Oficio::class, 'recibido_por_user_id');
+    }
+
+    /**
+     * Los permisos explícitos (sobre oficios o expedientes) que se le han otorgado a este usuario.
+     */
+    public function permissions(): HasMany
+    {
+        return $this->hasMany(Permission::class);
     }
 }

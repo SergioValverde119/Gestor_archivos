@@ -7,13 +7,6 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
 
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Settings\TwoFactorAuthenticationRequest;
-use Illuminate\Routing\Controllers\HasMiddleware;
-use Illuminate\Routing\Controllers\Middleware;
-use Inertia\Response;
-use Laravel\Fortify\Features;
-
 class AreaController extends Controller
 {
     /**
@@ -21,16 +14,12 @@ class AreaController extends Controller
      */
     public function index()
     {
-        // Obtiene todas las áreas, ordenadas por la más reciente
-        $areas = Area::latest()->get();
+        $areas = Area::latest()->paginate(10);
 
-        return Inertia::render('Areas/index', [
-           'areas' => $areas, // Pasa la colección de áreas a la vista
+        return Inertia::render('Areas/Index', [
+           'areas' => $areas,
         ]);
     }
-    
- 
-
 
     /**
      * Show the form for creating a new resource.
@@ -98,9 +87,9 @@ class AreaController extends Controller
      */
     public function destroy(Area $area)
     {
-        // Se valida que el área no esté en uso por un oficio
-        if ($area->oficios()->count() > 0) {
-            return redirect()->back()->with('error', 'No se puede eliminar un área con oficios asociados.');
+        // Validar que el área no esté en uso por un expediente o un usuario jefe.
+        if ($area->expedientes()->exists() || $area->jefes()->exists()) {
+            return redirect()->back()->with('error', 'No se puede eliminar un área que está asignada a expedientes o a un jefe de área.');
         }
 
         $area->delete();

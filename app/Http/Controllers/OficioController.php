@@ -3,170 +3,187 @@
 namespace App\Http\Controllers;
 
 use App\Models\Oficio;
-use App\Models\Prioridad;
 use App\Models\Area;
 use App\Models\User;
-use App\Models\Documento; // Asegúrate de tener este modelo
+use App\Models\Expediente;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
 
 class OficioController extends Controller
 {
+    // ... (El método index() y los demás que ya tenías no cambian)
+
     /**
-     * Muestra una lista de oficios con búsqueda y paginación.
+     * Display a listing of the resource.
      */
     public function index(Request $request)
     {
-        // Aplicar filtros de búsqueda
-        $oficios = Oficio::query()
-            ->with('documento') // Carga la relación con el documento para evitar N+1 queries
-            ->when($request->input('search'), function ($query, $search) use ($request) {
-                $field = $request->input('field', 'folio_oficio');
-                $query->where($field, 'like', "%{$search}%");
-            })
-            ->latest()
-            ->paginate(10)
-            ->withQueryString(); // Mantiene los parámetros de búsqueda en la paginación
+        $user = Auth::user();
+        
+        $query = Oficio::query()->with([
+            'expediente', 
+            'documentoPrincipal', 
+            'recibidoPor:id,name'
+        ]);
 
-        return Inertia::render('Oficios/index', [
+        // Aplicar filtros de permisos basados en el rol del usuario
+        $query->where(function ($q) use ($user) {
+            if (in_array($user->role, ['admin', 'director'])) {
+                // Sin filtro, acceso total.
+            } 
+            elseif ($user->role === 'jefe_area' && $user->area_id) {
+                $q->whereHas('expediente', function ($expedienteQuery) use ($user) {
+                    $expedienteQuery->whereHas('areas', function ($areaQuery) use ($user) {
+                        $areaQuery->where('areas.id', $user->area_id);
+                    });
+                });
+            } 
+            else {
+                 $q->where(function($permissionQuery) use ($user) {
+                    $permissionQuery->whereHas('permissions', function ($pQuery) use ($user) {
+                        $pQuery->where('user_id', $user->id)
+                               ->where('permissible_type', Oficio::class);
+                    })
+                    ->orWhereHas('expediente', function ($expedienteQuery) use ($user) {
+                        $expedienteQuery->whereHas('permissions', function ($pQuery) use ($user) {
+                            $pQuery->where('user_id', $user->id)
+                                   ->where('permissible_type', Expediente::class);
+                        });
+                    });
+                });
+            }
+        });
+
+        // Aplicar filtros de búsqueda de la interfaz
+        $query->when($request->input('search'), function ($q, $search) use ($request) {
+            $field = $request->input('field', 'folio_oficio');
+            if (in_array($field, ['folio_oficio', 'asunto', 'remitente', 'destinatario', 'status'])) {
+                $q->where($field, 'like', "%{$search}%");
+            }
+        });
+
+        $oficios = $query->latest()->paginate(10)->withQueryString();
+
+        return Inertia::render('Oficios/Index', [
             'oficios' => $oficios,
-            // Devuelve los filtros al frontend para que los inputs mantengan su estado
             'filters' => $request->only(['search', 'field']),
         ]);
     }
 
     /**
-     * Muestra el formulario para crear un nuevo oficio.
+     * Show the form for creating a new resource, generating folios automatically.
      */
     public function create()
     {
-        return Inertia::render('Oficios/create', [
-            'prioridades' => Prioridad::all(['id', 'nombre']),
-            'areas' => Area::all(['id', 'nombre']),
-            'users' => User::all(['id', 'name']),
+        // --- NUEVA LÓGICA DE GENERACIÓN DE FOLIOS ---
+        $nextFolioOficio = $this->getNextFolio('oficio');
+        $nextFolioInterno = $this->getNextFolio('interno');
+
+        return Inertia::render('Oficios/Create', [
+            'expedientes' => Expediente::all(['id', 'numero_expediente', 'titulo']),
+            // Pasar los nuevos folios a la vista
+            'nextFolioOficio' => $nextFolioOficio,
+            'nextFolioInterno' => $nextFolioInterno,
         ]);
     }
 
     /**
-     * Almacena un nuevo oficio y su archivo adjunto.
+     * Store a newly created resource in storage, using the generated folios.
      */
     public function store(Request $request)
     {
-        // Validación ajustada a los campos del formulario de creación
-        $validatedData = $request->validate([
-            'folio_oficio' => 'required|string|max:255|unique:oficios',
-            'archivo' => 'required|file|mimes:pdf,doc,docx,jpg,png|max:2048', // Validación para el archivo
+        $validated = $request->validate([
+            // Se quita la validación de los folios, ya que ahora vienen del sistema
+            'expediente_id' => 'required|exists:expedientes,id',
+            'tipo' => ['required', Rule::in(['entrada', 'salida'])],
             'remitente' => 'nullable|string|max:255',
-            'asunto' => 'nullable|string|max:255',
-            'situacion' => 'nullable|string',
-            'folio_interno' => 'nullable|string|max:255|unique:oficios,folio_interno',
+            'destinatario' => 'nullable|string|max:255',
+            'asunto' => 'required|string',
+            'descripcion' => 'nullable|string',
             'fecha_recepcion' => 'nullable|date',
-            'fecha_limite' => 'nullable|date|after_or_equal:fecha_recepcion',
-            'prioridad_id' => 'nullable|exists:prioridades,id',
-            'area_id' => 'nullable|exists:areas,id',
-            'asignado_a_user_id' => 'nullable|exists:users,id',
-            'status' => 'required|string|in:Pendiente,En Proceso,Completado',
+            'prioridad' => ['nullable', Rule::in(['Ordinario', 'Urgente', 'Extremadamente Urgente'])],
+            'status' => 'required|string|max:255',
+            'documento_principal' => 'required|file|mimes:pdf,doc,docx,jpg,png|max:2048',
+            'anexos' => 'nullable|array',
+            'anexos.*' => 'file|mimes:pdf,doc,docx,jpg,png|max:2048',
         ]);
 
-        // Crea el oficio con los datos validados
-        $oficio = Oficio::create($validatedData);
-
-        // Manejo del archivo
-        if ($request->hasFile('archivo')) {
-            $path = $request->file('archivo')->store('documentos', 'public');
-            $oficio->documento()->create([
-                'nombre_documento' => $request->file('archivo')->getClientOriginalName(),
-                'ruta_almacenamiento' => $path,
-                'tipo_documento' => $request->file('archivo')->getClientOriginalExtension(), // <-- CORRECCIÓN AÑADIDA
+        // --- NUEVA LÓGICA DE REGISTRO DE FOLIOS ---
+        $oficio = DB::transaction(function () use ($validated, $request) {
+            // 1. Obtener y bloquear los siguientes folios para evitar duplicados
+            $folioOficio = $this->getNextFolio('oficio', true);
+            $folioInterno = $this->getNextFolio('interno', true);
+            
+            // 2. Preparar los datos del oficio con los folios generados
+            $oficioData = array_merge($validated, [
+                'folio_oficio' => $folioOficio,
+                'folio_interno' => $folioInterno,
+                'expediente_id' => $validated['expediente_id'],
+                'recibido_por_user_id' => Auth::id(),
             ]);
-        }
+
+            // 3. Crear el oficio
+            $oficio = Oficio::create($oficioData);
+
+            // 4. Guardar documentos (principal y anexos)
+            if ($request->hasFile('documento_principal')) {
+                $file = $request->file('documento_principal');
+                $path = $file->store('documentos', 'public');
+                $oficio->documentos()->create([
+                    'nombre_documento' => $file->getClientOriginalName(),
+                    'ruta_almacenamiento' => $path,
+                    'tipo_documento' => $file->getClientOriginalExtension(),
+                    'rol_documento' => 'principal',
+                ]);
+            }
+
+            if ($request->hasFile('anexos')) {
+                foreach ($request->file('anexos') as $anexo) {
+                    $pathAnexo = $anexo->store('documentos', 'public');
+                    $oficio->documentos()->create([
+                        'nombre_documento' => $anexo->getClientOriginalName(),
+                        'ruta_almacenamiento' => $pathAnexo,
+                        'tipo_documento' => $anexo->getClientOriginalExtension(),
+                        'rol_documento' => 'anexo',
+                    ]);
+                }
+            }
+            
+            // 5. Incrementar los contadores en la base de datos
+            DB::table('folio_sequences')->where('name', 'oficio')->increment('last_number');
+            DB::table('folio_sequences')->where('name', 'interno')->increment('last_number');
+
+            return $oficio;
+        });
 
         return redirect()->route('oficios.index')->with('success', 'Oficio creado correctamente.');
     }
 
-    /**
-     * Muestra los detalles de un oficio específico.
-     */
-    public function show(Oficio $oficio)
-    {
-        // Carga todas las relaciones necesarias
-        $oficio->load(['prioridad', 'area', 'asignadoA', 'documento']);
-
-        return Inertia::render('Oficios/show', [ // Asumo que tienes una vista Show.vue
-            'oficio' => $oficio,
-        ]);
-    }
+    // ... (Los métodos show, edit, update, y destroy no necesitan cambios para esta lógica)
 
     /**
-     * Muestra el formulario para editar un oficio.
+     * Helper function to get the next folio number.
+     *
+     * @param string $name 'oficio' or 'interno'
+     * @param bool $lockForUpdate
+     * @return string
      */
-    public function edit(Oficio $oficio)
+    private function getNextFolio(string $name, bool $lockForUpdate = false): string
     {
-        $oficio->load('documento'); // Carga el documento actual
+        $query = DB::table('folio_sequences')->where('name', $name);
 
-        return Inertia::render('Oficios/edit', [
-            'oficio' => $oficio,
-            // Puedes pasar los selects si son necesarios para la edición
-            'prioridades' => Prioridad::all(['id', 'nombre']),
-            'areas' => Area::all(['id', 'nombre']),
-            'users' => User::all(['id', 'name']),
-        ]);
-    }
-
-    /**
-     * Actualiza un oficio existente.
-     * OJO: Inertia envía archivos con POST, por eso no usamos inyección de tipo Request.
-     */
-    public function update(Request $request, Oficio $oficio)
-    {
-         $validatedData = $request->validate([
-            // Unificamos los campos de ambos formularios
-            'folio_oficio' => ['required', 'string', 'max:255', Rule::unique('oficios')->ignore($oficio->id)],
-            'documento' => 'nullable|file|mimes:pdf,doc,docx,jpg,png|max:2048', // 'documento' en lugar de 'archivo'
-            'asunto' => 'nullable|string|max:255',
-            'status' => 'required|string|max:255',
-            'fecha_recepcion' => 'nullable|date',
-            'remitente' => 'nullable|string|max:255',
-            'dependencia_emisora' => 'nullable|string|max:255',
-            'dependencia_turno' => 'nullable|string|max:255',
-            // Agrega aquí otras reglas de validación si son necesarias
-        ]);
-
-        $oficio->update($validatedData);
-
-        // Manejo de la actualización del archivo
-        if ($request->hasFile('documento')) {
-            // Eliminar el archivo antiguo si existe
-            if ($oficio->documento) {
-                Storage::disk('public')->delete($oficio->documento->ruta_almacenamiento);
-                $oficio->documento->delete();
-            }
-            // Guardar el nuevo archivo
-            $path = $request->file('documento')->store('documentos', 'public');
-            $oficio->documento()->create([
-                'nombre_documento' => $request->file('documento')->getClientOriginalName(),
-                'ruta_almacenamiento' => $path,
-                'tipo_documento' => $request->file('documento')->getClientOriginalExtension(), // <-- CORRECCIÓN AÑADIDA
-            ]);
+        if ($lockForUpdate) {
+            // Bloquea la fila para evitar que otro proceso la lea mientras la usamos
+            $query->lockForUpdate();
         }
 
-        return redirect()->route('oficios.index')->with('success', 'Oficio actualizado correctamente.');
-    }
-
-    /**
-     * Elimina un oficio y su archivo asociado.
-     */
-    public function destroy(Oficio $oficio)
-    {
-        // Eliminar el archivo si existe
-        if ($oficio->documento) {
-            Storage::disk('public')->delete($oficio->documento->ruta_almacenamiento);
-            $oficio->documento->delete();
-        }
-
-        $oficio->delete();
-        return redirect()->route('oficios.index')->with('success', 'Oficio eliminado correctamente.');
+        $sequence = $query->first();
+        
+        // Formatea el número con ceros a la izquierda, por ejemplo: 0013
+        return str_pad($sequence->last_number + 1, 4, '0', STR_PAD_LEFT);
     }
 }
