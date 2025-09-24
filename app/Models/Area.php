@@ -21,7 +21,8 @@ class Area extends Model
     ];
 
     /**
-     * Los usuarios que son jefes de esta área.
+     * Get the users that are heads of this area.
+     * Obtiene los usuarios que son jefes de esta área.
      */
     public function jefes(): HasMany
     {
@@ -29,6 +30,7 @@ class Area extends Model
     }
 
     /**
+     * The expedientes that belong to the area.
      * Los expedientes que pertenecen a esta área.
      */
     public function expedientes(): BelongsToMany

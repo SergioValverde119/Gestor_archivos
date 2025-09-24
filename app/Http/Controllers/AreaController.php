@@ -14,9 +14,10 @@ class AreaController extends Controller
      */
     public function index()
     {
+        // Se obtienen las áreas paginadas para mayor eficiencia
         $areas = Area::latest()->paginate(10);
 
-        return Inertia::render('Areas/index', [
+        return Inertia::render('Areas/Index', [
            'areas' => $areas,
         ]);
     }
@@ -26,7 +27,7 @@ class AreaController extends Controller
      */
     public function create()
     {
-        return Inertia::render('Areas/create');
+        return Inertia::render('Areas/Create');
     }
 
     /**
@@ -44,21 +45,11 @@ class AreaController extends Controller
     }
 
     /**
-     * Display the specified resource.
-     */
-    public function show(Area $area)
-    {
-        return Inertia::render('Areas/show', [
-            'area' => $area,
-        ]);
-    }
-
-    /**
      * Show the form for editing the specified resource.
      */
     public function edit(Area $area)
     {
-        return Inertia::render('Areas/edit', [
+        return Inertia::render('Areas/Edit', [
             'area' => $area,
         ]);
     }
@@ -87,9 +78,13 @@ class AreaController extends Controller
      */
     public function destroy(Area $area)
     {
-        // Validar que el área no esté en uso por un expediente o un usuario jefe.
-        if ($area->expedientes()->exists() || $area->jefes()->exists()) {
-            return redirect()->back()->with('error', 'No se puede eliminar un área que está asignada a expedientes o a un jefe de área.');
+        // Se valida que el área no esté en uso por un expediente o un usuario
+        if ($area->expedientes()->exists()) {
+            return redirect()->back()->with('error', 'No se puede eliminar un área asignada a uno o más expedientes.');
+        }
+
+        if ($area->jefes()->exists()) {
+            return redirect()->back()->with('error', 'No se puede eliminar un área asignada a un jefe de área.');
         }
 
         $area->delete();

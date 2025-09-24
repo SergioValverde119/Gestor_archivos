@@ -13,14 +13,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('area_expediente', function (Blueprint $table) {
+        Schema::create('permissions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('area_id')->constrained('areas')->onDelete('cascade');
-            $table->foreignId('expediente_id')->constrained('expedientes')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+
+            // Columnas para la relación polimórfica
+            $table->morphs('permissible'); // Esto crea permissible_id (bigint unsigned) y permissible_type (string)
+
+            $table->enum('permission_level', ['editor', 'visualizador']);
             $table->timestamps();
 
-            // Clave única para evitar duplicados (un área no puede estar dos veces en el mismo expediente)
-            $table->unique(['area_id', 'expediente_id']);
+            // Asegurar que un usuario solo tenga un tipo de permiso por objeto
+            $table->unique(['user_id', 'permissible_id', 'permissible_type']);
         });
     }
 
@@ -31,6 +35,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('area_expediente');
+        Schema::dropIfExists('permissions');
     }
 };

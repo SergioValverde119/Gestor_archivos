@@ -23,8 +23,8 @@ class User extends Authenticatable
         'email',
         'password',
         'cargo',
-        'role',      // Añadido para los privilegios
-        'area_id',   // Añadido para los jefes de área
+        'role',
+        'area_id',
     ];
 
     /**
@@ -35,12 +35,10 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'two_factor_recovery_codes',
-        'two_factor_secret',
     ];
 
     /**
-     * The attributes that should be cast.
+     * Get the attributes that should be cast.
      *
      * @return array<string, string>
      */
@@ -53,7 +51,7 @@ class User extends Authenticatable
     }
 
     /**
-     * El área a la que pertenece el usuario, si es jefe de área.
+     * Get the area this user manages, if they are a 'jefe_area'.
      */
     public function area(): BelongsTo
     {
@@ -61,7 +59,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Los oficios que este usuario ha recibido físicamente.
+     * Get the oficios that this user has received.
      */
     public function oficiosRecibidos(): HasMany
     {
@@ -69,7 +67,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Los permisos explícitos (sobre oficios o expedientes) que se le han otorgado a este usuario.
+     * Get all explicit permissions for the user.
      */
     public function permissions(): HasMany
     {

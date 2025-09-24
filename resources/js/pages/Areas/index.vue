@@ -27,7 +27,7 @@ interface PaginatedAreas {
 }
 
 const props = defineProps<{
-    areas: PaginatedAreas; // <-- Espera un objeto paginado
+    areas: PaginatedAreas;
 }>();
 
 // --- Objeto con las rutas escritas a mano (solución temporal) ---

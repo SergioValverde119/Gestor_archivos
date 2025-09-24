@@ -25,7 +25,7 @@ const props = defineProps<{
   expedientes: Expediente[];
   areas: Area[];
   users: User[];
-  nextFolioOficio: string;
+  nextFolioSalida: string;
   nextFolioInterno: string;
 }>();
 
@@ -35,8 +35,9 @@ const creandoNuevoExpediente = ref(true);
 // Formulario de Inertia alineado con la nueva estructura de la BD y el controlador
 const form = useForm({
   // Folios automáticos (vienen del controlador)
-  folio_oficio: props.nextFolioOficio,
+  folio_salida: props.nextFolioSalida,
   folio_interno: props.nextFolioInterno,
+  folio_externo: '', // Para oficios de entrada
   
   // Selección o creación de expediente
   expediente_id: null as number | null,
@@ -90,7 +91,9 @@ const handleAnexosChange = (event: Event) => {
 }
 
 const addAsignacion = () => {
-    form.asignaciones.push({ user_id: props.users[0]?.id, permission: 'visualizador' });
+    if (props.users.length > 0) {
+        form.asignaciones.push({ user_id: props.users[0].id, permission: 'visualizador' });
+    }
 }
 
 const removeAsignacion = (index: number) => {
@@ -164,21 +167,28 @@ const breadcrumbs: BreadcrumbItem[] = [
           <div class="border-b dark:border-gray-700 pb-6">
             <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Paso 2: Datos del Oficio</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label for="folio_oficio" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Folio de Oficio (Generado)</label>
-                <input type="text" id="folio_oficio" v-model="form.folio_oficio" disabled class="mt-1 block w-full rounded-md shadow-sm bg-gray-100 dark:bg-gray-700" />
-              </div>
-              <div>
-                <label for="folio_interno" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Folio Interno (Generado)</label>
-                <input type="text" id="folio_interno" v-model="form.folio_interno" disabled class="mt-1 block w-full rounded-md shadow-sm bg-gray-100 dark:bg-gray-700" />
-              </div>
-
+              
               <div>
                 <label for="tipo" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tipo de Oficio</label>
                 <select id="tipo" v-model="form.tipo" class="mt-1 block w-full rounded-md shadow-sm">
                   <option value="entrada">Entrada</option>
                   <option value="salida">Salida</option>
                 </select>
+              </div>
+
+              <div v-if="form.tipo === 'entrada'">
+                <label for="folio_externo" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Folio Externo (el que viene en el documento)</label>
+                <input type="text" id="folio_externo" v-model="form.folio_externo" class="mt-1 block w-full rounded-md shadow-sm" />
+                <div v-if="form.errors.folio_externo" class="text-red-500 text-sm mt-1">{{ form.errors.folio_externo }}</div>
+              </div>
+              <div v-else>
+                <label for="folio_salida" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Folio de Salida (Generado)</label>
+                <input type="text" id="folio_salida" v-model="form.folio_salida" disabled class="mt-1 block w-full rounded-md shadow-sm bg-gray-100 dark:bg-gray-700" />
+              </div>
+
+              <div>
+                <label for="folio_interno" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Folio Interno (Generado)</label>
+                <input type="text" id="folio_interno" v-model="form.folio_interno" disabled class="mt-1 block w-full rounded-md shadow-sm bg-gray-100 dark:bg-gray-700" />
               </div>
 
               <div v-if="form.tipo === 'entrada'">
@@ -239,7 +249,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
           <!-- SECCIÓN DE ASIGNACIONES -->
           <div>
-            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Paso 4: Asignar Permisos (Opcional)</h2>
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Paso 4: Asignar Permisos a Operativos (Opcional)</h2>
             <div v-for="(asignacion, index) in form.asignaciones" :key="index" class="flex items-center space-x-4 mb-2">
                 <select v-model="asignacion.user_id" class="block w-1/2 rounded-md shadow-sm">
                     <option v-for="user in users" :key="user.id" :value="user.id">{{ user.name }}</option>

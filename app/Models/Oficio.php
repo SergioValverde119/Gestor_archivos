@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Oficio extends Model
@@ -20,12 +21,13 @@ class Oficio extends Model
     protected $fillable = [
         'expediente_id',
         'tipo',
-        'folio_oficio',
+        'folio_externo',
+        'folio_salida',
+        'folio_interno',
         'remitente',
         'destinatario',
         'asunto',
         'descripcion',
-        'folio_interno',
         'fecha_recepcion',
         'fecha_limite',
         'prioridad',
@@ -39,33 +41,27 @@ class Oficio extends Model
     ];
 
     /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'fecha_recepcion' => 'date',
+        'fecha_limite' => 'date',
+        'fecha_turno_dgaf' => 'date',
+        'tiene_turno_dgaf' => 'boolean',
+    ];
+
+    /**
      * The relationships that should always be loaded.
      *
      * @var array<int, string>
      */
-    protected $with = [
-        'expediente',
-        'documentos',
-        'recibidoPor',
-    ];
+    protected $with = ['expediente', 'documentoPrincipal'];
 
     /**
-     * The attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'fecha_recepcion' => 'date',
-            'fecha_limite' => 'date',
-            'fecha_turno_dgaf' => 'date',
-            'tiene_turno_dgaf' => 'boolean',
-        ];
-    }
-
-    /**
-     * El expediente al que pertenece este oficio.
+     * Get the expediente that the oficio belongs to.
+     * Obtiene el expediente al que pertenece el oficio.
      */
     public function expediente(): BelongsTo
     {
@@ -73,7 +69,8 @@ class Oficio extends Model
     }
 
     /**
-     * El usuario que recibió físicamente este oficio.
+     * Get the user who received the oficio.
+     * Obtiene el usuario que recibió el oficio.
      */
     public function recibidoPor(): BelongsTo
     {
@@ -81,23 +78,17 @@ class Oficio extends Model
     }
 
     /**
-     * El oficio original al que este oficio está respondiendo.
+     * Get the oficio that this oficio is a response to.
+     * Obtiene el oficio al que este oficio responde.
      */
     public function respuestaA(): BelongsTo
     {
         return $this->belongsTo(Oficio::class, 'oficio_respuesta_id');
     }
-    
-    /**
-     * Los oficios que son respuesta a este oficio.
-     */
-    public function respuestas(): HasMany
-    {
-        return $this->hasMany(Oficio::class, 'oficio_respuesta_id');
-    }
 
     /**
-     * Todos los documentos (principal y anexos) asociados a este oficio.
+     * Get all the documents for the Oficio.
+     * Obtiene todos los documentos (principal y anexos) del oficio.
      */
     public function documentos(): HasMany
     {
@@ -105,19 +96,20 @@ class Oficio extends Model
     }
 
     /**
-     * Los permisos específicos de usuario para este oficio.
+     * Get the main document for the Oficio.
+     * Obtiene solo el documento principal del oficio.
+     */
+    public function documentoPrincipal(): HasOne
+    {
+        return $this->hasOne(Documento::class)->where('rol_documento', 'principal');
+    }
+
+    /**
+     * Get all of the oficio's permissions.
+     * Obtiene todos los permisos explícitos sobre este oficio.
      */
     public function permissions(): MorphMany
     {
         return $this->morphMany(Permission::class, 'permissible');
-    }
-
-    /**
-     * Un scope local para filtrar oficios vencidos.
-     */
-    public function scopeVencidos($query)
-    {
-        return $query->where('fecha_limite', '<', now())
-                     ->where('status', '!=', 'Resuelto');
     }
 }

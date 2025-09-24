@@ -24,7 +24,7 @@ class ExpedienteController extends Controller
         // Aplicar filtros de permisos basados en el rol del usuario
         $query->where(function ($q) use ($user) {
             // 1. Si es admin o director, puede ver todo.
-            if ($user->role === 'admin' || $user->role === 'director') {
+            if (in_array($user->role, ['admin', 'director'])) {
                 // Sin filtro, acceso total.
             }
             // 2. Si es jefe de área, ve los expedientes de su área.
@@ -93,7 +93,6 @@ class ExpedienteController extends Controller
      */
     public function show(Expediente $expediente)
     {
-        // Política de autorización (se implementaría en un Policy)
         // $this->authorize('view', $expediente);
 
         $expediente->load(['areas', 'oficios.documentoPrincipal', 'oficios.recibidoPor:id,name']);

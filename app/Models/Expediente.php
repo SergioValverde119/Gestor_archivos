@@ -24,7 +24,8 @@ class Expediente extends Model
     ];
 
     /**
-     * Todos los oficios que pertenecen a este expediente.
+     * Get all the oficios for the Expediente.
+     * Obtiene todos los oficios que pertenecen a este expediente.
      */
     public function oficios(): HasMany
     {
@@ -32,7 +33,8 @@ class Expediente extends Model
     }
 
     /**
-     * Las áreas a las que pertenece este expediente.
+     * The areas that belong to the Expediente.
+     * Las áreas que tienen permiso sobre este expediente.
      */
     public function areas(): BelongsToMany
     {
@@ -40,7 +42,8 @@ class Expediente extends Model
     }
 
     /**
-     * Los permisos específicos de usuario para este expediente.
+     * Get all the expediente's permissions.
+     * Obtiene todos los permisos explícitos sobre este expediente.
      */
     public function permissions(): MorphMany
     {

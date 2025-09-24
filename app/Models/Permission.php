@@ -18,25 +18,14 @@ class Permission extends Model
      */
     protected $fillable = [
         'user_id',
-        'permission_level',
         'permissible_id',
         'permissible_type',
+        'permission_level',
     ];
 
     /**
-     * The attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            //
-        ];
-    }
-
-    /**
-     * El usuario que recibe este permiso.
+     * Get the user that the permission belongs to.
+     * Obtiene el usuario al que se le otorgó el permiso.
      */
     public function user(): BelongsTo
     {
@@ -44,7 +33,8 @@ class Permission extends Model
     }
 
     /**
-     * Obtiene el modelo al que se le dio el permiso (Oficio o Expediente).
+     * Get the parent permissible model (oficio or expediente).
+     * Obtiene el modelo al que se le aplica el permiso (un Oficio o un Expediente).
      */
     public function permissible(): MorphTo
     {

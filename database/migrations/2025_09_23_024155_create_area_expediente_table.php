@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -11,8 +12,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Se crea la tabla con las columnas necesarias, pero sin las relaciones
         Schema::create('area_expediente', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('area_id');
+            $table->unsignedBigInteger('expediente_id');
             $table->timestamps();
         });
     }

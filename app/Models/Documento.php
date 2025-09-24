@@ -20,23 +20,12 @@ class Documento extends Model
         'nombre_documento',
         'ruta_almacenamiento',
         'tipo_documento',
-        'rol_documento',
+        'rol_documento', // <-- Campo añadido
     ];
 
     /**
-     * The attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            //
-        ];
-    }
-
-    /**
-     * El oficio al que pertenece este documento.
+     * Get the oficio that owns the Documento.
+     * Obtiene el oficio al que pertenece este documento.
      */
     public function oficio(): BelongsTo
     {

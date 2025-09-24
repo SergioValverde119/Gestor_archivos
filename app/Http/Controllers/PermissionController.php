@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Oficio;
 use App\Models\Expediente;
-use App\Models\User;
 use App\Models\Permission;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -31,7 +30,7 @@ class PermissionController extends Controller
         // Opcional: Verificar si el usuario actual tiene permiso para dar permisos
         // Gate::authorize('share', $permissible);
 
-        // Crear el permiso
+        // Crear el permiso usando la relación polimórfica
         $permissible->permissions()->create([
             'user_id' => $validated['user_id'],
             'permission_level' => $validated['permission_level'],
