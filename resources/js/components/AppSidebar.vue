@@ -4,7 +4,7 @@ import NavMain from '@/components/NavMain.vue';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { LayoutDashboard, FilePlus2, House, Search, Building2, FolderArchive, FileUp } from 'lucide-vue-next';
+import { LayoutDashboard, FilePlus2, House, Search, Building2, FolderArchive, FileUp, Users } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 // Obtén la función para alternar y el estado de la barra lateral
@@ -45,6 +45,11 @@ const mainNavItems: NavItem[] = [
         title: 'Áreas',
         href: '/areas',
         icon: Building2,
+    },
+    {
+        title: 'Usuarios',
+        href: '/users',
+        icon: Users,
     },
 ];
 
