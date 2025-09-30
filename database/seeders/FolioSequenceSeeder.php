@@ -14,19 +14,19 @@ class FolioSequenceSeeder extends Seeder
      */
     public function run(): void
     {
-        // Usamos updateOrInsert para que puedas correr este seeder varias veces
-        // sin que se dupliquen los registros. Si ya existen, solo los actualiza.
-
-        // Establece el contador inicial para el folio de oficio
+        // Establece el contador inicial para el folio de oficio de SALIDA
         DB::table('folio_sequences')->updateOrInsert(
-            ['name' => 'oficio'],
-            ['last_number' => 1200]
+            ['name' => 'salida'],
+            ['last_number' => 2] // Empezará en 1
         );
 
         // Establece el contador inicial para el folio interno
         DB::table('folio_sequences')->updateOrInsert(
             ['name' => 'interno'],
-            ['last_number' => 4000]
+            ['last_number' => 4013]  // Lo dejamos como lo tenías para pruebas
         );
     }
 }
+
+
+

@@ -12,12 +12,10 @@ interface Area {
 
 const props = defineProps<{
   areas: Area[];
-  flash: { success?: string; }
 }>();
 
 // --- Lógica de Éxito ---
-// El estado de éxito se basa en el mensaje 'flash' que envía el controlador
-const submissionSuccessful = ref(!!props.flash?.success);
+const submissionSuccessful = ref(false);
 
 // --- Lógica del Formulario ---
 const form = useForm({
@@ -31,9 +29,12 @@ const form = useForm({
 });
 
 const submit = () => {
-  // Al tener éxito, el controlador redirigirá de vuelta a esta página
-  // y enviará el mensaje 'flash', lo que activará el panel de éxito.
-  form.post('/users');
+  form.post('/users', {
+      onSuccess: () => {
+          submissionSuccessful.value = true;
+          form.reset('password', 'password_confirmation');
+      }
+  });
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -50,7 +51,7 @@ const breadcrumbs: BreadcrumbItem[] = [
       
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-2xl mx-auto">
         
-        <!-- Panel de Éxito (se muestra cuando `submissionSuccessful` es true) -->
+        <!-- Panel de Éxito -->
         <div v-if="submissionSuccessful" class="text-center py-10">
             <svg class="mx-auto h-12 w-12 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -73,19 +74,18 @@ const breadcrumbs: BreadcrumbItem[] = [
             </div>
         </div>
 
-        <!-- Formulario (se oculta cuando hay éxito) -->
         <form v-else @submit.prevent="submit" class="space-y-6">
           <!-- Nombre -->
           <div>
             <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nombre Completo</label>
-            <input type="text" id="name" v-model="form.name" required class="mt-1 block w-full rounded-md shadow-sm" />
+            <input type="text" id="name" v-model="form.name" required autocomplete="off" class="mt-1 block w-full rounded-md shadow-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 focus:border-transparent dark:focus:border-transparent" />
             <div v-if="form.errors.name" class="text-red-500 text-sm mt-1">{{ form.errors.name }}</div>
           </div>
 
           <!-- Email -->
           <div>
             <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Correo Electrónico</label>
-            <input type="email" id="email" v-model="form.email" required class="mt-1 block w-full rounded-md shadow-sm" />
+            <input type="email" id="email" v-model="form.email" required autocomplete="off" class="mt-1 block w-full rounded-md shadow-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 focus:border-transparent dark:focus:border-transparent" />
             <div v-if="form.errors.email" class="text-red-500 text-sm mt-1">{{ form.errors.email }}</div>
           </div>
 
@@ -93,26 +93,26 @@ const breadcrumbs: BreadcrumbItem[] = [
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Contraseña</label>
-              <input type="password" id="password" v-model="form.password" required class="mt-1 block w-full rounded-md shadow-sm" />
+              <input type="password" id="password" v-model="form.password" required autocomplete="new-password" class="mt-1 block w-full rounded-md shadow-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 focus:border-transparent dark:focus:border-transparent" />
               <div v-if="form.errors.password" class="text-red-500 text-sm mt-1">{{ form.errors.password }}</div>
             </div>
             <div>
               <label for="password_confirmation" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Confirmar Contraseña</label>
-              <input type="password" id="password_confirmation" v-model="form.password_confirmation" required class="mt-1 block w-full rounded-md shadow-sm" />
+              <input type="password" id="password_confirmation" v-model="form.password_confirmation" required autocomplete="new-password" class="mt-1 block w-full rounded-md shadow-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 focus:border-transparent dark:focus:border-transparent" />
             </div>
           </div>
 
            <!-- Cargo / Puesto -->
           <div>
             <label for="cargo" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Cargo / Puesto</label>
-            <input type="text" id="cargo" v-model="form.cargo" class="mt-1 block w-full rounded-md shadow-sm" />
+            <input type="text" id="cargo" v-model="form.cargo" class="mt-1 block w-full rounded-md shadow-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 focus:border-transparent dark:focus:border-transparent" />
             <div v-if="form.errors.cargo" class="text-red-500 text-sm mt-1">{{ form.errors.cargo }}</div>
           </div>
 
           <!-- Rol del Sistema -->
           <div>
             <label for="role" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Rol en el Sistema</label>
-            <select id="role" v-model="form.role" required class="mt-1 block w-full rounded-md shadow-sm">
+            <select id="role" v-model="form.role" required class="mt-1 block w-full rounded-md shadow-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 focus:border-transparent dark:focus:border-transparent">
               <option value="operativo">Operativo</option>
               <option value="jefe_area">Jefe de Área</option>
               <option value="director">Director</option>
@@ -124,7 +124,7 @@ const breadcrumbs: BreadcrumbItem[] = [
           <!-- Área de Pertenencia (condicional) -->
           <div v-if="form.role === 'jefe_area' || form.role === 'operativo'">
             <label for="area_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Área de Pertenencia</label>
-            <select id="area_id" v-model="form.area_id" required class="mt-1 block w-full rounded-md shadow-sm">
+            <select id="area_id" v-model="form.area_id" required class="mt-1 block w-full rounded-md shadow-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 focus:border-transparent dark:focus:border-transparent">
               <option :value="null" disabled>Seleccione un área</option>
               <option v-for="area in areas" :key="area.id" :value="area.id">{{ area.nombre }}</option>
             </select>

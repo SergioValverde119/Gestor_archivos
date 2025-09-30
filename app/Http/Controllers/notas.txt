@@ -1,0 +1,79 @@
+**Personal**
+-empleado
+--agrega/editar/borrar/ver/Ajustar departamento/Ajustar Cargo/Ajustar Area/Habilitar/Resincronizar al dispositivo/volver a cargar desde dispositivo
+
+-departamento
+--ver/importar
+
+-Cargo
+--agregar/ver/importar
+
+-Area
+--ver/importar
+
+-Documentos
+--agregar/editar/borrar/ver/importar
+
+-Niveles de aprobacion
+--agregar/editar/ver
+
+-Flujo de aprobacion
+--agregar/editar/borrar/ver/agregar para departamento/agregar para pocision/agregar para empleado
+
+-Aprobares autorizados
+--agregar/editar/ver/asignar empleados
+
+
+**Asistencia**
+-Horario
+--ver/
+
+-turno
+--ver
+
+-permiso
+--borrar/editar/ver/agregar/aprobar/revocar/importar
+
+-vacaciones
+--ver/asignar vacaciones
+
+-tipo de permiso
+--agregar/editar/
+
+-dia festivo
+--ver
+
+-calendario
+--ver
+
+-calendario de departamento
+--ver
+
+-calendario temporal
+--ver
+
+-cambiar calendario
+--ver
+
+-resumen de permisos
+--calcular/eventos/reporte de eventos/asistencia diaria/ toal de asistencia/resumen de empleados/resumen de permisos/primero y ultimo/perimera entrada ultima salida/exepciones/resumen de departamento/resumen de asistencia/retardos/salidas tempranas/tiempo extra/ausencias/checadas multiples/descansos multiples/vista de calendario/view vacation report/view att stop calculate
+
+**Control de acceso**
+-dispositivo 
+--ver
+
+-Horario
+--ver/clonar a Area
+
+-festivo
+--ver
+
+-grupos
+--ver
+
+-combinacion
+--ver
+
+-privilegio
+--ver
+

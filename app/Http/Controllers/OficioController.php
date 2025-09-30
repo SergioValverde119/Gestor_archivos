@@ -12,16 +12,22 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class OficioController extends Controller
 {
-    // ... index() y otros métodos no cambian ...
+    use AuthorizesRequests;
+
+    /**
+     * Muestra una lista de oficios aplicando la lógica de permisos.
+     */
     public function index(Request $request)
     {
         $user = Auth::user();
         $query = Oficio::query()->with(['expediente', 'documentoPrincipal', 'recibidoPor:id,name']);
         $query->where(function ($q) use ($user) {
             if (in_array($user->role, ['admin', 'director'])) {
+                // Sin filtro, acceso total
             } elseif ($user->role === 'jefe_area' && $user->area_id) {
                 $q->whereHas('expediente', function ($expedienteQuery) use ($user) {
                     $expedienteQuery->whereHas('areas', function ($areaQuery) use ($user) {
@@ -55,79 +61,94 @@ class OficioController extends Controller
         ]);
     }
 
-    // ... createSalida() y storeSalida() no cambian...
-     public function createSalida()
+    /**
+     * Muestra el formulario para PREPARAR un oficio de SALIDA.
+     */
+    public function createSalida()
     {
         return Inertia::render('Oficios/CreateSalida', [
             'areas' => Area::all(['id', 'nombre']),
             'users' => User::where('role', 'operativo')->get(['id', 'name']),
+            'oficiosDeEntrada' => Oficio::where('tipo', 'entrada')->latest()->get(['id', 'folio_externo', 'asunto']),
             'nextFolioSalida' => $this->getNextFolio('salida'),
             'nextFolioInterno' => $this->getNextFolio('interno'),
         ]);
     }
+
+    /**
+     * Almacena un oficio de SALIDA.
+     */
     public function storeSalida(Request $request)
     {
         $validated = $request->validate([
-            'area_ids' => 'required|array|min:1',
-            'area_ids.*' => 'exists:areas,id',
-            'destinatario' => 'required|string|max:255',
-            'asunto' => 'required|string|max:255',
+            'area_ids' => 'required_without:oficio_respuesta_id|nullable|array',
+            'area_ids.*' => 'required|exists:areas,id',
+            'destinatario' => 'nullable|string|max:255',
+            'asunto' => 'nullable|string|max:255',
             'descripcion' => 'nullable|string',
             'prioridad' => ['nullable', Rule::in(['Ordinario', 'Urgente', 'Extremadamente Urgente'])],
             'status' => 'required|string|max:255',
+            'oficio_respuesta_id' => 'nullable|exists:oficios,id',
             'asignaciones' => 'nullable|array',
-            'asignaciones.*.user_id' => 'required|exists:users,id',
-            'asignaciones.*.permission' => ['required', Rule::in(['editor', 'visualizador'])],
+            'asignaciones.*.user_id' => 'nullable|exists:users,id',
+            'asignaciones.*.permission' => ['required_with:asignaciones.*.user_id', Rule::in(['editor', 'visualizador'])],
         ]);
-        $oficio = DB::transaction(function () use ($validated, $request) {
+
+        DB::transaction(function () use ($validated, $request) {
             $folioSalida = $this->getNextFolio('salida', true);
             $folioInterno = $this->getNextFolio('interno', true);
-            $expediente = Expediente::create([
-                'numero_expediente' => $folioSalida,
-                'titulo' => $validated['asunto'],
-            ]);
-            $expediente->areas()->sync($validated['area_ids']);
-            $oficio = $expediente->oficios()->create([
+            
+            if (!empty($validated['oficio_respuesta_id'])) {
+                $oficioOriginal = Oficio::findOrFail($validated['oficio_respuesta_id']);
+                $expediente = $oficioOriginal->expediente;
+            } else {
+                $expediente = Expediente::create([
+                    'numero_expediente' => $folioSalida,
+                    'titulo' => $validated['asunto'] ?? 'Oficio de Salida sin Asunto',
+                ]);
+                $expediente->areas()->sync($validated['area_ids'] ?? []);
+            }
+
+            $oficioData = array_merge($validated, [
                 'tipo' => 'salida',
                 'folio_salida' => $folioSalida,
                 'folio_interno' => $folioInterno,
-                'asunto' => $validated['asunto'],
-                'descripcion' => $validated['descripcion'],
-                'destinatario' => $validated['destinatario'],
-                'prioridad' => $validated['prioridad'],
-                'status' => $validated['status'],
                 'recibido_por_user_id' => Auth::id(),
             ]);
+
+            $oficio = $expediente->oficios()->create($oficioData);
+
             if (!empty($validated['asignaciones'])) {
                 foreach ($validated['asignaciones'] as $asignacion) {
-                    $oficio->permissions()->create([
-                        'user_id' => $asignacion['user_id'],
-                        'permission_level' => $asignacion['permission'],
-                    ]);
+                     if($asignacion['user_id']){
+                        $oficio->permissions()->create([
+                            'user_id' => $asignacion['user_id'],
+                            'permission_level' => $asignacion['permission'],
+                        ]);
+                    }
                 }
             }
+            
             DB::table('folio_sequences')->where('name', 'salida')->increment('last_number');
             DB::table('folio_sequences')->where('name', 'interno')->increment('last_number');
-            return $oficio;
         });
-        return redirect()->route('oficios.index')->with('success', 'Oficio de Salida generado correctamente.');
-    }
 
+        return redirect()->route('oficios.createSalida')->with('success', 'Oficio de Salida generado correctamente.');
+    }
 
     /**
      * Muestra el formulario para REGISTRAR un oficio de ENTRADA.
      */
     public function createEntrada()
     {
-        // --- CORRECCIÓN ---
         return Inertia::render('Oficios/CreateEntrada', [
             'areas' => Area::all(['id', 'nombre']),
-            'users' => User::where('role', 'operativo')->get(['id', 'name']), // Lista filtrada para permisos
-            'allUsers' => User::all(['id', 'name']), // Lista completa para "Recibido Por"
+            'users' => User::where('role', 'operativo')->get(['id', 'name']),
+            'allUsers' => User::all(['id', 'name']),
             'nextFolioInterno' => $this->getNextFolio('interno'),
         ]);
     }
-
+    
     /**
      * Almacena un oficio de ENTRADA (con archivo).
      */
@@ -146,31 +167,25 @@ class OficioController extends Controller
             'documento_principal' => 'required|file|mimes:pdf,doc,docx,jpg,png|max:2048',
             'anexos' => 'nullable|array',
             'anexos.*' => 'file|mimes:pdf,doc,docx,jpg,png|max:2048',
-            'recibido_por_user_id' => 'required|exists:users,id', // <-- Añadir validación
+            'recibido_por_user_id' => 'required|exists:users,id',
             'asignaciones' => 'nullable|array',
             'asignaciones.*.user_id' => 'required|exists:users,id',
             'asignaciones.*.permission' => ['required', Rule::in(['editor', 'visualizador'])],
         ]);
-
-        $oficio = DB::transaction(function () use ($validated, $request) {
+        DB::transaction(function () use ($validated, $request) {
             $folioInterno = $this->getNextFolio('interno', true);
-            
             $expediente = Expediente::create([
                 'numero_expediente' => $validated['folio_externo'],
                 'titulo' => $validated['asunto'],
             ]);
             $expediente->areas()->sync($validated['area_ids']);
-            
-            // Unir el 'recibido_por_user_id' a los datos del oficio
             $oficioData = array_merge($validated, [
                 'folio_interno' => $folioInterno,
                 'tipo' => 'entrada',
             ]);
-
             $oficio = $expediente->oficios()->create($oficioData);
-
             if ($request->hasFile('documento_principal')) {
-                 $file = $request->file('documento_principal');
+                $file = $request->file('documento_principal');
                 $path = $file->store('documentos', 'public');
                 $oficio->documentos()->create([
                     'nombre_documento' => $file->getClientOriginalName(),
@@ -190,28 +205,25 @@ class OficioController extends Controller
                     ]);
                 }
             }
-
             if (!empty($validated['asignaciones'])) {
                 foreach ($validated['asignaciones'] as $asignacion) {
-                    $oficio->permissions()->create([
-                        'user_id' => $asignacion['user_id'],
-                        'permission_level' => $asignacion['permission'],
-                    ]);
+                    $oficio->permissions()->updateOrCreate(
+                        ['user_id' => $asignacion['user_id']],
+                        ['permission_level' => $asignacion['permission']]
+                    );
                 }
             }
-            
             DB::table('folio_sequences')->where('name', 'interno')->increment('last_number');
-            
-            return $oficio;
         });
-
         return redirect()->route('oficios.createEntrada')->with('success', 'Oficio de Entrada registrado correctamente.');
     }
 
-
-    // ... show(), edit(), update(), destroy(), getNextFolio() no cambian ...
+    /**
+     * Muestra los detalles de un oficio específico.
+     */
     public function show(Oficio $oficio)
     {
+        $this->authorize('view', $oficio);
         $oficio->load([
             'expediente.areas',
             'expediente.oficios' => function ($query) {
@@ -226,15 +238,25 @@ class OficioController extends Controller
             'oficio' => $oficio,
         ]);
     }
+
+    /**
+     * Muestra el formulario para editar un oficio.
+     */
     public function edit(Oficio $oficio)
     {
+        $this->authorize('update', $oficio);
         $oficio->load(['expediente']);
         return Inertia::render('Oficios/Edit', [
             'oficio' => $oficio,
         ]);
     }
+
+    /**
+     * Actualiza un oficio existente.
+     */
     public function update(Request $request, Oficio $oficio)
     {
+        $this->authorize('update', $oficio);
         $validated = $request->validate([
             'tipo' => ['required', Rule::in(['entrada', 'salida'])],
             'folio_externo' => ['required_if:tipo,entrada', 'nullable', 'string', 'max:255', Rule::unique('oficios')->ignore($oficio->id)],
@@ -251,8 +273,13 @@ class OficioController extends Controller
         $oficio->update($validated);
         return redirect()->route('oficios.index')->with('success', 'Oficio actualizado correctamente.');
     }
+
+    /**
+     * Elimina un oficio.
+     */
     public function destroy(Oficio $oficio)
     {
+        $this->authorize('delete', $oficio);
         DB::transaction(function () use ($oficio) {
             foreach ($oficio->documentos as $documento) {
                 Storage::disk('public')->delete($documento->ruta_almacenamiento);
@@ -261,6 +288,10 @@ class OficioController extends Controller
         });
         return redirect()->route('oficios.index')->with('success', 'Oficio eliminado correctamente.');
     }
+
+    /**
+     * Helper function to get the next folio number.
+     */
     private function getNextFolio(string $name, bool $lockForUpdate = false): string
     {
         $query = DB::table('folio_sequences')->where('name', $name);
@@ -268,9 +299,11 @@ class OficioController extends Controller
             $query->lockForUpdate();
         }
         $sequence = $query->first();
+        
         if (!$sequence) {
             return '0001';
         }
+        
         return str_pad($sequence->last_number + 1, 4, '0', STR_PAD_LEFT);
     }
 }

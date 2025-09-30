@@ -4,9 +4,13 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { ref, watch } from 'vue';
 import { debounce } from 'lodash';
-import { FileText, Edit, Search } from 'lucide-vue-next';
+import { FileText, Edit, Search, Download } from 'lucide-vue-next';
 
 // --- Definición de Tipos para los Datos del Controlador ---
+interface Documento {
+    ruta_almacenamiento: string;
+}
+
 interface Expediente {
     id: number;
     numero_expediente: string;
@@ -23,9 +27,10 @@ interface Oficio {
   folio_salida: string | null;
   asunto: string;
   status: string;
-  expediente: Expediente | null; // Puede ser nulo
-  recibidoPor: User | null; // Puede ser nulo
+  expediente: Expediente | null;
+  recibidoPor: User | null;
   created_at: string;
+  documentoPrincipal?: Documento | null; // <-- CORRECCIÓN: Añadido el documento
 }
 
 interface PaginationLink {
@@ -103,30 +108,44 @@ const breadcrumbs: BreadcrumbItem[] = [
                 <th class="px-6 py-3 text-left text-xs font-medium uppercase">Expediente</th>
                 <th class="px-6 py-3 text-left text-xs font-medium uppercase">Estado</th>
                 <th class="px-6 py-3 text-left text-xs font-medium uppercase">Registrado Por</th>
-                <th class="px-6 py-3 text-left text-xs font-medium uppercase">Fecha de Registro</th>
+                <th class="px-6 py-3 text-left text-xs font-medium uppercase">Fecha</th>
+                <th class="px-6 py-3 text-center text-xs font-medium uppercase">Documento</th>
                 <th class="px-6 py-3 text-right text-xs font-medium uppercase">Acciones</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
               <tr v-if="oficios.data.length === 0">
-                <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">
-                  No se encontraron oficios que coincidan con la búsqueda.
+                <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500">
+                  No se encontraron oficios.
                 </td>
               </tr>
               <tr v-for="oficio in oficios.data" :key="oficio.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">{{ oficio.folio_externo || oficio.folio_salida || 'N/A' }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ oficio.asunto }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    <!-- CORRECCIÓN: Usar optional chaining (?.) -->
                     <Link v-if="oficio.expediente" :href="`/expedientes/${oficio.expediente.id}`" class="text-blue-600 hover:underline">
                         {{ oficio.expediente?.numero_expediente }}
                     </Link>
                     <span v-else>N/A</span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ oficio.status || 'N/A' }}</td>
-                <!-- CORRECCIÓN: Usar optional chaining (?.) -->
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ oficio.recibidoPor?.name || 'Sistema' }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ formatDate(oficio.created_at) }}</td>
+                
+                <!-- CORRECCIÓN: Nueva celda para el enlace al documento -->
+                <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+                    <a 
+                        v-if="oficio.documentoPrincipal" 
+                        :href="`/storage/${oficio.documentoPrincipal.ruta_almacenamiento}`" 
+                        target="_blank"
+                        class="text-green-600 hover:text-green-800 inline-block"
+                        title="Ver Documento Principal"
+                    >
+                        <Download class="w-5 h-5" />
+                    </a>
+                    <span v-else class="text-gray-400">-</span>
+                </td>
+
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div class="flex justify-end space-x-4">
                     <Link :href="`/oficios/${oficio.id}`" class="text-blue-600 hover:text-blue-800" title="Ver Detalles">
