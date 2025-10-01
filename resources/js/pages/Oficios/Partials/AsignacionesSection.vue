@@ -20,7 +20,7 @@ const removeAsignacion = (index: number) => {
 
 <template>
     <div>
-        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Paso 4: Asignar Permisos a Operativos (Opcional)</h2>
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Asignar Permisos a Operativos</h2>
         <div v-for="(asignacion, index) in form.asignaciones" :key="index" class="flex items-center space-x-4 mb-2">
             <select v-model="asignacion.user_id" class="block w-1/2 rounded-md shadow-sm">
                 <option :value="null" disabled>Seleccione un operativo</option>

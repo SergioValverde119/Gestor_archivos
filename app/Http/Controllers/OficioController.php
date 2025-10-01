@@ -18,16 +18,13 @@ class OficioController extends Controller
 {
     use AuthorizesRequests;
 
-    /**
-     * Muestra una lista de oficios aplicando la lógica de permisos.
-     */
+    // ... index() y otros métodos no cambian ...
     public function index(Request $request)
     {
         $user = Auth::user();
         $query = Oficio::query()->with(['expediente', 'documentoPrincipal', 'recibidoPor:id,name']);
         $query->where(function ($q) use ($user) {
             if (in_array($user->role, ['admin', 'director'])) {
-                // Sin filtro, acceso total
             } elseif ($user->role === 'jefe_area' && $user->area_id) {
                 $q->whereHas('expediente', function ($expedienteQuery) use ($user) {
                     $expedienteQuery->whereHas('areas', function ($areaQuery) use ($user) {
@@ -69,7 +66,7 @@ class OficioController extends Controller
         return Inertia::render('Oficios/CreateSalida', [
             'areas' => Area::all(['id', 'nombre']),
             'users' => User::where('role', 'operativo')->get(['id', 'name']),
-            'oficiosDeEntrada' => Oficio::where('tipo', 'entrada')->latest()->get(['id', 'folio_externo', 'asunto']),
+            'searchableOficios' => Oficio::latest()->get(['id', 'folio_interno', 'folio_externo', 'folio_salida', 'asunto']),
             'nextFolioSalida' => $this->getNextFolio('salida'),
             'nextFolioInterno' => $this->getNextFolio('interno'),
         ]);
@@ -80,9 +77,10 @@ class OficioController extends Controller
      */
     public function storeSalida(Request $request)
     {
+        // --- CORRECCIÓN: La validación del área ahora es más flexible ---
         $validated = $request->validate([
             'area_ids' => 'required_without:oficio_respuesta_id|nullable|array',
-            'area_ids.*' => 'required|exists:areas,id',
+            'area_ids.*' => 'exists:areas,id',
             'destinatario' => 'nullable|string|max:255',
             'asunto' => 'nullable|string|max:255',
             'descripcion' => 'nullable|string',
@@ -102,11 +100,16 @@ class OficioController extends Controller
                 $oficioOriginal = Oficio::findOrFail($validated['oficio_respuesta_id']);
                 $expediente = $oficioOriginal->expediente;
             } else {
+                // Si es un nuevo caso, se necesita al menos un área
+                if (empty($validated['area_ids'])) {
+                    // Este es un fallback, la validación debería prevenirlo
+                    abort(422, 'Se requiere al menos un área para un nuevo expediente.');
+                }
                 $expediente = Expediente::create([
                     'numero_expediente' => $folioSalida,
                     'titulo' => $validated['asunto'] ?? 'Oficio de Salida sin Asunto',
                 ]);
-                $expediente->areas()->sync($validated['area_ids'] ?? []);
+                $expediente->areas()->sync($validated['area_ids']);
             }
 
             $oficioData = array_merge($validated, [
@@ -168,22 +171,30 @@ class OficioController extends Controller
             'anexos' => 'nullable|array',
             'anexos.*' => 'file|mimes:pdf,doc,docx,jpg,png|max:2048',
             'recibido_por_user_id' => 'required|exists:users,id',
+            'tiene_turno_dgaf' => 'required|boolean',
+            'folio_turno_dgaf' => 'required_if:tiene_turno_dgaf,true|nullable|string|max:255',
+            'fecha_turno_dgaf' => 'required_if:tiene_turno_dgaf,true|nullable|date',
             'asignaciones' => 'nullable|array',
             'asignaciones.*.user_id' => 'required|exists:users,id',
             'asignaciones.*.permission' => ['required', Rule::in(['editor', 'visualizador'])],
         ]);
+
         DB::transaction(function () use ($validated, $request) {
             $folioInterno = $this->getNextFolio('interno', true);
+            
             $expediente = Expediente::create([
                 'numero_expediente' => $validated['folio_externo'],
                 'titulo' => $validated['asunto'],
             ]);
             $expediente->areas()->sync($validated['area_ids']);
+            
             $oficioData = array_merge($validated, [
                 'folio_interno' => $folioInterno,
                 'tipo' => 'entrada',
             ]);
+
             $oficio = $expediente->oficios()->create($oficioData);
+
             if ($request->hasFile('documento_principal')) {
                 $file = $request->file('documento_principal');
                 $path = $file->store('documentos', 'public');
@@ -205,6 +216,7 @@ class OficioController extends Controller
                     ]);
                 }
             }
+
             if (!empty($validated['asignaciones'])) {
                 foreach ($validated['asignaciones'] as $asignacion) {
                     $oficio->permissions()->updateOrCreate(
@@ -213,9 +225,12 @@ class OficioController extends Controller
                     );
                 }
             }
+            
             DB::table('folio_sequences')->where('name', 'interno')->increment('last_number');
         });
-        return redirect()->route('oficios.createEntrada')->with('success', 'Oficio de Entrada registrado correctamente.');
+
+        // --- CORRECCIÓN: Se asegura la redirección para flashear el mensaje ---
+        return to_route('oficios.createEntrada')->with('success', 'Oficio de Entrada registrado correctamente.');
     }
 
     /**
