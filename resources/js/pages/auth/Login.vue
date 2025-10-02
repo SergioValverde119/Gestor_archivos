@@ -11,7 +11,7 @@ import { register } from '@/routes';
 import { request } from '@/routes/password';
 import { Form, Head } from '@inertiajs/vue3';
 import { LoaderCircle } from 'lucide-vue-next';
-
+ 
 defineProps<{
     status?: string;
     canResetPassword: boolean;

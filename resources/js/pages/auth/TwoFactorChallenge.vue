@@ -37,7 +37,7 @@ const toggleRecoveryMode = (clearErrors: () => void): void => {
     clearErrors();
     code.value = [];
 };
-
+ 
 const code = ref<number[]>([]);
 const codeValue = computed<string>(() => code.value.join(''));
 </script>

@@ -3,13 +3,15 @@ import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { ref, computed } from 'vue';
-import OficioRespuestaSection from './Partials/OficioRespuestaSection.vue';
-import  FormErrors  from './Partials/FormErrors.vue';
+
 //Componentes de oficio
 import AsignacionesSection from './Partials/AsignacionesSection.vue';
 import AreasSection from './Partials/AreasSection.vue';
 import SuccessPanel from './Partials/SuccessPanel.vue';
-
+import DocumentosSection from './Partials/DocumentosSection.vue'
+import AsuntoDescripcionSection from './Partials/AsuntoDescripcionSection.vue'; 
+import OficioRespuestaSection from './Partials/OficioRespuestaSection.vue';
+import  FormErrors  from './Partials/FormErrors.vue';
 // --- Definiciones de Tipos ---
 interface Area { id: number; nombre: string; }
 interface User { id: number; name: string; }
@@ -29,8 +31,8 @@ const props = defineProps<{
 
 const flash = computed(() => usePage().props.flash as { success?: string });
 const submissionSuccessful = computed(() => !!flash.value?.success);
-
 const authUser = computed(() => usePage().props.auth.user as User);
+
 
 // --- El "Cerebro" del Formulario ---
 const form = useForm({
@@ -41,22 +43,13 @@ const form = useForm({
   descripcion: '',
   prioridad: 'Ordinario' as 'Ordinario' | 'Urgente' | 'Extremadamente Urgente',
   status: 'Enviado',
+  documento_principal: null as File | null,
   oficio_respuesta_id: null as number | null,
   area_ids: [null] as (number | null)[],
   asignaciones: [],
 });
 
-// --- Lógica para la Búsqueda de Oficio de Respuesta ---
 
-
-
-
-
-
-
-
-
-// --- Lógica de Envío del Formulario ---
 const submit = () => {
   form.post('/oficios/salida');
 };
@@ -119,15 +112,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                       <input type="text" id="destinatario" v-model="form.destinatario" class="mt-1 block w-full rounded-md shadow-sm" />
                       <div v-if="form.errors.destinatario" class="text-red-500 text-sm mt-1">{{ form.errors.destinatario }}</div>
                   </div>
-                  <div class="md:col-span-2">
-                      <label for="asunto" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Asunto (Opcional)</label>
-                      <input type="text" id="asunto" v-model="form.asunto" class="mt-1 block w-full rounded-md shadow-sm" />
-                      <div v-if="form.errors.asunto" class="text-red-500 text-sm mt-1">{{ form.errors.asunto }}</div>
-                  </div>
-                  <div class="md:col-span-2">
-                      <label for="descripcion" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción (Opcional)</label>
-                      <textarea id="descripcion" v-model="form.descripcion" rows="3" class="mt-1 block w-full rounded-md shadow-sm"></textarea>
-                  </div>
+
                   <div>
                       <label for="prioridad" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Prioridad</label>
                       <select id="prioridad" v-model="form.prioridad" class="mt-1 block w-full rounded-md shadow-sm">
@@ -136,15 +121,13 @@ const breadcrumbs: BreadcrumbItem[] = [
                           <option>Extremadamente Urgente</option>
                       </select>
                   </div>
+
+                  <AsuntoDescripcionSection :form="form" />
               </div>
           </div>
-
+          <DocumentosSection :form="form" />
           <!-- SECCIÓN DE ÁREAS (condicional) -->
-          <AreasSection 
-            v-if="!form.oficio_respuesta_id" 
-            :form="form" 
-            :areas="props.areas" 
-          />
+          <AreasSection :form="form" :areas="props.areas" />
           <!-- SECCIÓN DE ASIGNACIONES-->
           <AsignacionesSection 
           :form="form" 

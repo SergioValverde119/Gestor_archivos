@@ -10,7 +10,7 @@ import { login } from '@/routes';
 import { Form, Head } from '@inertiajs/vue3';
 import { LoaderCircle } from 'lucide-vue-next';
 </script>
-
+ 
 <template>
     <AuthBase title="Create an account" description="Enter your details below to create your account">
         <Head title="Register" />

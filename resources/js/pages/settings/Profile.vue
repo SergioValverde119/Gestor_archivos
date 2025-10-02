@@ -20,7 +20,7 @@ interface Props {
 }
 
 defineProps<Props>();
-
+ 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
         title: 'Profile settings',

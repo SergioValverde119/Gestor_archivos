@@ -11,16 +11,22 @@ import DocumentosSection from './Partials/DocumentosSection.vue';
 import AreasSection from './Partials/AreasSection.vue';
 import AsignacionesSection from './Partials/AsignacionesSection.vue';
 import SuccessPanel from './Partials/SuccessPanel.vue';
+import FormErrors from './Partials/FormErrors.vue';
+import AsuntoDescripcionSection from './Partials/AsuntoDescripcionSection.vue';
+import OficioRespuestaSection from './Partials/OficioRespuestaSection.vue';
 
 // --- Definiciones de Tipos ---
 interface Area { id: number; nombre: string; }
 interface User { id: number; name: string; }
+interface SearchableOficio { id: number; folio_interno: string | null; folio_externo: string | null; folio_salida: string | null; asunto: string; }
 
 const props = defineProps<{
   areas: Area[];
   users: User[];
+  searchableOficios: SearchableOficio[];
   allUsers: User[];
   nextFolioInterno: string;
+  flash?: { success?: string; }
 }>();
 
 // --- CORRECCIÓN: Usar una propiedad computada para la reactividad ---
@@ -35,13 +41,15 @@ const form = useForm({
   remitente: '',
   asunto: '',
   descripcion: '',
-  fecha_recepcion: new Date().toISOString().split('T')[0],
+  fecha_recepcion: new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0],
+  fecha_limite: '' as string | null,
   prioridad: 'Ordinario' as 'Ordinario' | 'Urgente' | 'Extremadamente Urgente',
   status: 'Pendiente',
   documento_principal: null as File | null,
   anexos: [] as File[],
   recibido_por_user_id: authUser.value ? authUser.value.id : null,
   area_ids: [],
+  oficio_respuesta_id: null as number | null,
   asignaciones: [],
   tiene_turno_dgaf: false,
   folio_turno_dgaf: '',
@@ -86,7 +94,11 @@ const breadcrumbs: BreadcrumbItem[] = [
         </SuccessPanel>
 
         <form v-else @submit.prevent="submit" class="space-y-6">
+          <OficioRespuestaSection :form="form" :searchable-oficios="props.searchableOficios" />
+          <FormErrors :form="form" />
           <OficioDataSection :form="form" :all-users="props.allUsers" />
+          
+          <AsuntoDescripcionSection :form="form" />
           <TurnoDgafSection :form="form" />
           <DocumentosSection :form="form" />
           <AreasSection :form="form" :areas="props.areas" />

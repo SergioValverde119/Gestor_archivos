@@ -37,7 +37,7 @@ class AuthenticatedSessionController extends Controller
                 'login.id' => $user->getKey(),
                 'login.remember' => $request->boolean('remember'),
             ]);
-
+ 
             return to_route('two-factor.login');
         }
 

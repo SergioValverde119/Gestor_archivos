@@ -9,7 +9,7 @@ import AuthLayout from '@/layouts/AuthLayout.vue';
 import { login } from '@/routes';
 import { Form, Head } from '@inertiajs/vue3';
 import { LoaderCircle } from 'lucide-vue-next';
-
+ 
 defineProps<{
     status?: string;
 }>();
@@ -18,7 +18,7 @@ defineProps<{
 <template>
     <AuthLayout title="Forgot password" description="Enter your email to receive a password reset link">
         <Head title="Forgot password" />
-
+ 
         <div v-if="status" class="mb-4 text-center text-sm font-medium text-green-600">
             {{ status }}
         </div>

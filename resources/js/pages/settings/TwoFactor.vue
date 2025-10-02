@@ -17,7 +17,7 @@ interface Props {
     requiresConfirmation?: boolean;
     twoFactorEnabled?: boolean;
 }
-
+ 
 withDefaults(defineProps<Props>(), {
     requiresConfirmation: false,
     twoFactorEnabled: false,

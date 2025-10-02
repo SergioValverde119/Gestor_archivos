@@ -13,11 +13,11 @@ const handleAnexosChange = (event: Event) => {
 
 <template>
     <div class="border-b dark:border-gray-700 pb-6">
-        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Paso 2: Adjuntar Documentos</h2>
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Adjuntar Documentos</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-                <label for="documento_principal" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Documento Principal (Requerido)</label>
-                <input type="file" id="documento_principal" @input="form.documento_principal = ($event.target as HTMLInputElement).files?.[0] ?? null" required class="mt-1 block w-full text-sm" />
+                <label for="documento_principal" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Documento Principal</label>
+                <input type="file" id="documento_principal" @input="form.documento_principal = ($event.target as HTMLInputElement).files?.[0] ?? null" class="mt-1 block w-full text-sm" />
                 <div v-if="form.errors.documento_principal" class="text-red-500 text-sm mt-1">{{ form.errors.documento_principal }}</div>
             </div>
             <div>

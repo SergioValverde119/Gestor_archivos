@@ -13,7 +13,7 @@ const props = defineProps<{
     token: string;
     email: string;
 }>();
-
+ 
 const inputEmail = ref(props.email);
 </script>
 
