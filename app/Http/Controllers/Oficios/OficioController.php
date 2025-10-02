@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Oficios;
 
 use App\Http\Controllers\Controller;
 use App\Models\Oficio;
-use App\Models\Area;
-use App\Models\User;
 use App\Models\Expediente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,11 +11,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests; // Se importa la herramienta
 
 class OficioController extends Controller
 {
-    use AuthorizesRequests;
+    use AuthorizesRequests; // Se usa la herramienta
 
     /**
      * Muestra una lista de oficios aplicando la lógica de permisos.
@@ -25,15 +23,9 @@ class OficioController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        
-        // --- CORRECCIÓN: Se cargan también las áreas del expediente para mostrarlas en la tabla ---
-        $query = Oficio::query()->with([
-            'expediente.areas', 
-            'documentoPrincipal', 
-            'recibidoPor:id,name'
-        ]);
+        $query = Oficio::query()->with(['expediente.areas', 'documentoPrincipal', 'recibidoPor:id,name']);
 
-        // Aplicar filtros de permisos basados en el rol del usuario
+        // La lógica de filtrado se mantiene aquí para construir la consulta principal
         $query->where(function ($q) use ($user) {
             if (in_array($user->role, ['admin', 'director'])) {
                 // Sin filtro, acceso total
@@ -46,24 +38,21 @@ class OficioController extends Controller
             } else {
                 $q->where(function ($permissionQuery) use ($user) {
                     $permissionQuery->whereHas('permissions', function ($pQuery) use ($user) {
-                        $pQuery->where('user_id', $user->id)
-                            ->where('permissible_type', Oficio::class);
+                        $pQuery->where('user_id', $user->id)->where('permissible_type', Oficio::class);
                     })
-                        ->orWhereHas('expediente', function ($expedienteQuery) use ($user) {
-                            $expedienteQuery->whereHas('permissions', function ($pQuery) use ($user) {
-                                $pQuery->where('user_id', $user->id)
-                                    ->where('permissible_type', Expediente::class);
-                            });
+                    ->orWhereHas('expediente', function ($expedienteQuery) use ($user) {
+                        $expedienteQuery->whereHas('permissions', function ($pQuery) use ($user) {
+                            $pQuery->where('user_id', $user->id)->where('permissible_type', Expediente::class);
                         });
+                    });
                 });
             }
         });
 
-        // Aplicar filtros de búsqueda de la interfaz
         $query->when($request->input('search'), function ($q, $search) {
             $q->where('folio_externo', 'like', "%{$search}%")
-                ->orWhere('folio_salida', 'like', "%{$search}%")
-                ->orWhere('asunto', 'like', "%{$search}%");
+              ->orWhere('folio_salida', 'like', "%{$search}%")
+              ->orWhere('asunto', 'like', "%{$search}%");
         });
 
         $oficios = $query->latest()->paginate(10)->withQueryString();
@@ -79,13 +68,12 @@ class OficioController extends Controller
      */
     public function show(Oficio $oficio)
     {
+        // Se llama a la Policy para verificar el permiso 'view'
         $this->authorize('view', $oficio);
 
         $oficio->load([
             'expediente.areas',
-            'expediente.oficios' => function ($query) {
-                $query->with('documentoPrincipal')->orderBy('created_at');
-            },
+            'expediente.oficios' => fn($q) => $q->with('documentoPrincipal')->orderBy('created_at'),
             'documentos',
             'recibidoPor:id,name',
             'respuestaA',
@@ -102,13 +90,13 @@ class OficioController extends Controller
      */
     public function edit(Oficio $oficio)
     {
+        // Se llama a la Policy para verificar el permiso 'update'
         $this->authorize('update', $oficio);
 
         $oficio->load(['expediente']);
         
         return Inertia::render('Oficios/Edit', [
             'oficio' => $oficio,
-            // Aquí podrías necesitar enviar datos adicionales para los selects del formulario
         ]);
     }
 
@@ -117,6 +105,7 @@ class OficioController extends Controller
      */
     public function update(Request $request, Oficio $oficio)
     {
+        // Se llama a la Policy para verificar el permiso 'update'
         $this->authorize('update', $oficio);
         
         $validated = $request->validate([
@@ -126,7 +115,6 @@ class OficioController extends Controller
             'status' => 'required|string|max:255',
             'resolucion' => 'nullable|string',
             'oficio_respuesta_id' => 'nullable|exists:oficios,id',
-            // Añadir aquí cualquier otro campo que se pueda editar
         ]);
 
         $oficio->update($validated);
@@ -139,13 +127,14 @@ class OficioController extends Controller
      */
     public function destroy(Oficio $oficio)
     {
+        // Se llama a la Policy para verificar el permiso 'delete'
         $this->authorize('delete', $oficio);
 
         DB::transaction(function () use ($oficio) {
             foreach ($oficio->documentos as $documento) {
                 Storage::disk('public')->delete($documento->ruta_almacenamiento);
             }
-            $oficio->delete(); // Las relaciones en cascada se encargan del resto
+            $oficio->delete();
         });
 
         return redirect()->route('oficios.index')->with('success', 'Oficio eliminado correctamente.');

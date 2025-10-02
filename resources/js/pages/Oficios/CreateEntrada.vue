@@ -32,8 +32,8 @@ const props = defineProps<{
 // --- CORRECCIÓN: Usar una propiedad computada para la reactividad ---
 const flash = computed(() => usePage().props.flash as { success?: string });
 const submissionSuccessful = computed(() => !!flash.value?.success);
-
 const authUser = computed(() => usePage().props.auth.user as User);
+
 
 const form = useForm({
   folio_interno: props.nextFolioInterno,

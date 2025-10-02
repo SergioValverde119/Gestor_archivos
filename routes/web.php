@@ -22,9 +22,6 @@ Route::resource('areas', AreaController::class)->middleware(['auth', 'verified']
 Route::resource('users', UserController::class)->middleware(['auth', 'verified']);
 
 
-
-
-
 // --- RUTAS DE PERFIL (SIN CAMBIOS) ---
 Route::get('settings/profile', [ProfileController::class, 'edit'])->name('profile.edit')->middleware('auth');
 Route::patch('settings/profile', [ProfileController::class, 'update'])->name('profile.update')->middleware('auth');

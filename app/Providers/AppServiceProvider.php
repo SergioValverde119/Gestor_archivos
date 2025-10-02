@@ -2,20 +2,17 @@
 
 namespace App\Providers;
 
-use App\Models\Oficio;
-use App\Policies\OficioPolicy;
-use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use Illuminate\Support\ServiceProvider;
 
-class AuthServiceProvider extends ServiceProvider
+class AppServiceProvider extends ServiceProvider
 {
-
-    
     /**
      * Register any application services.
      */
-    protected $policies = [
-        Oficio::class => OficioPolicy::class, // <-- Esta es la línea clave
-    ];
+    public function register(): void
+    {
+        //
+    }
 
     /**
      * Bootstrap any application services.
