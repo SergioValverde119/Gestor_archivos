@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Oficio extends Model
 {
@@ -19,25 +19,10 @@ class Oficio extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'expediente_id',
-        'tipo',
-        'folio_externo',
-        'folio_salida',
-        'folio_interno',
-        'remitente',
-        'destinatario',
-        'asunto',
-        'descripcion',
-        'fecha_recepcion',
-        'fecha_limite',
-        'prioridad',
-        'recibido_por_user_id',
-        'oficio_respuesta_id',
-        'status',
-        'resolucion',
-        'tiene_turno_dgaf',
-        'folio_turno_dgaf',
-        'fecha_turno_dgaf',
+        'expediente_id', 'tipo', 'folio_externo', 'folio_salida', 'folio_interno',
+        'remitente', 'destinatario', 'asunto', 'descripcion', 'fecha_recepcion',
+        'fecha_limite', 'prioridad', 'recibido_por_user_id', 'oficio_respuesta_id',
+        'status', 'resolucion', 'tiene_turno_dgaf', 'folio_turno_dgaf', 'fecha_turno_dgaf',
     ];
 
     /**
@@ -53,15 +38,7 @@ class Oficio extends Model
     ];
 
     /**
-     * The relationships that should always be loaded.
-     *
-     * @var array<int, string>
-     */
-    protected $with = ['expediente', 'documentoPrincipal'];
-
-    /**
      * Get the expediente that the oficio belongs to.
-     * Obtiene el expediente al que pertenece el oficio.
      */
     public function expediente(): BelongsTo
     {
@@ -70,7 +47,6 @@ class Oficio extends Model
 
     /**
      * Get the user who received the oficio.
-     * Obtiene el usuario que recibió el oficio.
      */
     public function recibidoPor(): BelongsTo
     {
@@ -79,7 +55,6 @@ class Oficio extends Model
 
     /**
      * Get the oficio that this oficio is a response to.
-     * Obtiene el oficio al que este oficio responde.
      */
     public function respuestaA(): BelongsTo
     {
@@ -87,8 +62,7 @@ class Oficio extends Model
     }
 
     /**
-     * Get all the documents for the Oficio.
-     * Obtiene todos los documentos (principal y anexos) del oficio.
+     * Get all of the documents for the Oficio.
      */
     public function documentos(): HasMany
     {
@@ -96,20 +70,32 @@ class Oficio extends Model
     }
 
     /**
-     * Get the main document for the Oficio.
-     * Obtiene solo el documento principal del oficio.
-     */
-    public function documentoPrincipal(): HasOne
-    {
-        return $this->hasOne(Documento::class)->where('rol_documento', 'principal');
-    }
-
-    /**
      * Get all of the oficio's permissions.
-     * Obtiene todos los permisos explícitos sobre este oficio.
      */
     public function permissions(): MorphMany
     {
         return $this->morphMany(Permission::class, 'permissible');
+    }
+
+    /**
+     * Accessor para obtener solo el documento principal.
+     * Busca en la colección de 'documentos' ya cargada.
+     */
+    protected function documentoPrincipal(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->documentos->firstWhere('rol_documento', 'principal'),
+        );
+    }
+
+    /**
+     * Accessor para obtener solo los documentos anexos.
+     * Busca en la colección de 'documentos' ya cargada.
+     */
+    protected function anexos(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => $this->documentos->where('rol_documento', 'anexo'),
+        );
     }
 }

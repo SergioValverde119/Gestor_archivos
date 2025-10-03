@@ -1,0 +1,43 @@
+
+
+Folio Principal: El folio externo (si es de entrada) o el salida (si fue generado aquí).
+
+Folio Interno: El número de control consecutivo que se genera para todos los oficios.
+
+Número de Expediente: El identificador de la "carpeta" o caso al que pertenece el oficio.
+
+Tipo: Si es de entrada o salida. Podemos mostrarlo con un icono (flecha hacia adentro o hacia afuera) o una etiqueta de color.
+
+Remitente: Quién envía el oficio (para los de entrada).
+
+Destinatario: A quién se envía el oficio (para los de salida).
+
+Registrado Por: El nombre del usuario del sistema que capturó el oficio (recibido_por_user_id).
+
+Fecha de Registro: El día y hora exactos en que se guardó en el sistema (created_at).
+
+Fecha de Recepción: La fecha que viene en el documento físico (fecha_recepcion).
+
+Asunto: El tema principal del oficio.
+
+Descripción: Un texto más largo con detalles. En la tabla, podríamos mostrar un resumen y el texto completo al pasar el mouse por encima.
+
+Estado (Status): El estado actual del seguimiento (Pendiente, En Proceso, etc.). Ideal para mostrarlo como una etiqueta de color (amarillo, azul, verde).
+
+Prioridad: El nivel de urgencia (Ordinario, Urgente, etc.). También se puede mostrar con etiquetas de color.
+
+Fecha Límite: La fecha máxima para dar una respuesta. Podríamos calcular y mostrar los "días restantes".
+
+Áreas Involucradas: Una lista de todas las áreas que tienen acceso al expediente de este oficio.
+
+Usuarios Asignados: Una lista de todos los operativos que tienen un permiso (editor o visualizador) sobre este oficio o sobre su expediente.
+
+Oficio de Respuesta: Si este oficio es una respuesta a otro, podemos mostrar el folio del oficio original con un enlace.
+
+Documentos Adjuntos: Podemos mostrar:
+
+Un botón para descargar el documento principal.
+
+Un contador que indique el número de anexos (+3 anexos).
+
+Turno DGAF: Un indicador (como un icono o una insignia) que solo aparezca si el oficio tiene_turno_dgaf es true. Al hacer clic, podría mostrar el folio y la fecha del turno.

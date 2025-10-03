@@ -1,23 +1,44 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Documentos;
 
-use App\Models\Oficio;
+use App\Http\Controllers\Controller;
 use App\Models\Documento;
+use App\Models\Oficio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class DocumentoController extends Controller
 {
+    use AuthorizesRequests;
+
     /**
-     * Store a newly created document (anexo) for an existing oficio.
+     * Descarga de forma segura un documento, verificando los permisos del usuario.
+     */
+    public function download(Documento $documento)
+    {
+        // Usa la OficioPolicy para verificar si el usuario puede ver el oficio padre
+        $this->authorize('view', $documento->oficio);
+
+        // Construye la ruta completa al archivo en el servidor
+        $path = storage_path('app/public/' . $documento->ruta_almacenamiento);
+
+        // Verifica si el archivo existe antes de intentar descargarlo
+        if (!file_exists($path)) {
+            abort(404, 'El archivo solicitado no fue encontrado.');
+        }
+
+        // Usa el helper 'response()->download()' para una descarga más directa y segura
+        return response()->download($path, $documento->nombre_documento);
+    }
+
+    /**
      * Almacena nuevos anexos para un oficio ya existente.
      */
     public function store(Request $request, Oficio $oficio)
     {
-        // Opcional: Verificar si el usuario actual tiene permiso para editar el oficio
-        // Gate::authorize('update', $oficio);
+        $this->authorize('update', $oficio);
 
         $validated = $request->validate([
             'anexos' => 'required|array|min:1',
@@ -38,23 +59,17 @@ class DocumentoController extends Controller
     }
 
     /**
-     * Remove the specified document from storage.
      * Elimina un documento específico (principal o anexo).
      */
     public function destroy(Documento $documento)
     {
-        // Opcional: Verificar si el usuario actual tiene permiso para editar el oficio al que pertenece el documento
-        // Gate::authorize('update', $documento->oficio);
+        $this->authorize('update', $documento->oficio);
 
-        // Prevenir la eliminación del documento principal si es el único que queda
         if ($documento->rol_documento === 'principal' && $documento->oficio->documentos()->count() <= 1) {
             return redirect()->back()->with('error', 'No se puede eliminar el documento principal si es el único archivo del oficio.');
         }
 
-        // Eliminar el archivo físico
         Storage::disk('public')->delete($documento->ruta_almacenamiento);
-
-        // Eliminar el registro de la base de datos
         $documento->delete();
 
         return redirect()->back()->with('success', 'Documento eliminado correctamente.');

@@ -2,100 +2,134 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, onMounted } from 'vue';
 import { debounce } from 'lodash';
-import { FileText, Edit, Search, Download, ArrowRight, ArrowLeft } from 'lucide-vue-next';
+import { Eye, Edit, Search, Download, ArrowRight, ArrowLeft, ChevronDown } from 'lucide-vue-next';
+import OficioActionButtons from './Partials/OficioActionButtons.vue';
 
 // --- Definición de Tipos para los Datos del Controlador ---
-interface Documento {
-    ruta_almacenamiento: string;
-}
-
-interface Expediente {
-    id: number;
-    numero_expediente: string;
-}
-
-interface User {
-    id: number;
-    name: string;
-}
-
+interface Documento { id: number; ruta_almacenamiento: string; }
+interface Area { id: number; nombre: string; }
+interface Expediente { id: number; numero_expediente: string; areas: Area[]; }
+interface User { id: number; name: string; }
+interface Permission { user: User; }
 interface Oficio {
   id: number;
   tipo: 'entrada' | 'salida';
   folio_externo: string | null;
   folio_salida: string | null;
+  folio_interno: string | null;
   remitente: string | null;
   destinatario: string | null;
   asunto: string;
+  descripcion: string | null;
   status: string;
   prioridad: string;
+  fecha_recepcion: string | null;
+  fecha_limite: string | null;
+  tiene_turno_dgaf: boolean;
+  folio_turno_dgaf: string | null;
+  fecha_turno_dgaf: string | null;
   expediente: Expediente | null;
   recibidoPor: User | null;
   created_at: string;
   documentoPrincipal?: Documento | null;
+  documentos: Documento[];
+  permissions: Permission[];
+  respuestaA: { id: number; folio_interno: string; } | null;
 }
-
-interface PaginationLink {
-  url: string | null;
-  label: string;
-  active: boolean;
-}
-
-interface PaginatedOficios {
-  data: Oficio[];
-  links: PaginationLink[];
-}
+interface PaginationLink { url: string | null; label: string; active: boolean; }
+interface PaginatedOficios { data: Oficio[]; links: PaginationLink[]; }
 
 const props = defineProps<{
   oficios: PaginatedOficios;
-  filters: {
-    search?: string;
-  };
+  filters: { search?: string; };
 }>();
 
 // --- Lógica de Búsqueda ---
 const searchQuery = ref(props.filters.search || '');
-
 watch(searchQuery, debounce(() => {
-  router.get('/oficios', 
-    { search: searchQuery.value }, 
-    { preserveState: true, replace: true }
-  );
+  router.get('/oficios', { search: searchQuery.value }, { preserveState: true, replace: true });
 }, 300));
 
-// Función para formatear fechas
-const formatDate = (dateString: string) => {
+// --- Lógica para Columnas Personalizables ---
+const allColumns = ref([
+    { key: 'acciones', label: 'Acciones' },
+    { key: 'tipo', label: 'Tipo' },
+    { key: 'folio', label: 'Folio' },
+    { key: 'asunto', label: 'Asunto' },
+    { key: 'status', label: 'Estado' },
+    { key: 'prioridad', label: 'Prioridad' },
+    { key: 'fechaRegistro', label: 'Fecha Reg.' },
+    { key: 'folioInterno', label: 'Folio Interno' },
+    { key: 'expediente', label: 'Expediente' },
+    { key: 'remitente_destinatario', label: 'Remitente / Dest.' },
+    { key: 'descripcion', label: 'Descripción' },
+    { key: 'fechaRecepcion', label: 'Fecha Recep.' },
+    { key: 'fechaLimite', label: 'Fecha Límite' },
+    { key: 'registradoPor', label: 'Registrado Por' },
+    { key: 'areas', label: 'Áreas' },
+    { key: 'asignadoA', label: 'Asignado A' },
+    { key: 'respondeA', label: 'Responde A' },
+    { key: 'turnoDGAF', label: 'Turno DGAF' },
+    { key: 'anexos', label: 'Anexos' },
+]);
+
+const visibleColumns = ref<string[]>([]);
+
+onMounted(() => {
+    const saved = localStorage.getItem('visibleOficioColumns');
+    if (saved) {
+        visibleColumns.value = JSON.parse(saved);
+    } else {
+        visibleColumns.value = ['acciones', 'tipo', 'folio', 'asunto', 'status', 'prioridad', 'fechaRegistro'];
+    }
+});
+
+watch(visibleColumns, (newValue) => {
+    localStorage.setItem('visibleOficioColumns', JSON.stringify(newValue));
+}, { deep: true });
+
+const visibleHeaders = computed(() => {
+    const actionsColumn = allColumns.value.find(c => c.key === 'acciones');
+    const otherHeaders = allColumns.value.filter(c => 
+        visibleColumns.value.includes(c.key) && c.key !== 'acciones'
+    );
+
+    if (actionsColumn && visibleColumns.value.includes('acciones')) {
+        return [actionsColumn, ...otherHeaders];
+    }
+    
+    return otherHeaders;
+});
+
+// --- Funciones de Formateo y Estilos ---
+const formatDate = (dateString: string | null): string => {
   if (!dateString) return 'N/A';
   const date = new Date(dateString);
-  return date.toLocaleDateString('es-MX', {
-    year: 'numeric', month: '2-digit', day: '2-digit'
-  });
+  return date.toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' });
 };
-
-// Clases de color para las etiquetas de estado y prioridad
-const statusClasses = computed(() => (status: string) => {
-    switch (status) {
-        case 'Pendiente': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-        case 'En Proceso': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-        case 'Resuelto': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+const statusClasses = (status: string) => {
+    if (!status) return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    switch (status.toLowerCase()) {
+        case 'pendiente': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+        case 'en proceso': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+        case 'resuelto': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
         default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
     }
-});
-
-const priorityClasses = computed(() => (priority: string) => {
-    switch (priority) {
-        case 'Urgente': return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300';
-        case 'Extremadamente Urgente': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+};
+const priorityClasses = (priority: string) => {
+    if (!priority) return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    switch (priority.toLowerCase()) {
+        case 'urgente': return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300';
+        case 'extremadamente urgente': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
         default: return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
     }
-});
+};
 
 const breadcrumbs: BreadcrumbItem[] = [
   { title: 'Buscar Oficios', href: '/oficios' },
 ];
-
 </script>
 
 <template>
@@ -106,15 +140,26 @@ const breadcrumbs: BreadcrumbItem[] = [
 
       <div class="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
         <div class="relative w-full md:w-1/2">
-          <input
-            type="text"
-            v-model="searchQuery"
-            placeholder="Buscar por folio, asunto, remitente o destinatario..."
-            class="w-full rounded-md shadow-sm pl-10"
-          />
+          <input type="text" v-model="searchQuery" placeholder="Buscar..." class="w-full rounded-md shadow-sm pl-10" />
           <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
             <Search class="h-5 w-5 text-gray-400" />
           </div>
+        </div>
+
+        <div class="relative">
+            <details class="group">
+                <summary class="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-md cursor-pointer">
+                    Columnas <ChevronDown class="w-4 h-4 group-open:rotate-180 transition-transform"/>
+                </summary>
+                <div class="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-md shadow-lg z-10">
+                    <div class="p-2 grid grid-cols-2 gap-2">
+                        <label v-for="col in allColumns" :key="col.key" class="flex items-center space-x-2 text-sm">
+                            <input type="checkbox" :value="col.key" v-model="visibleColumns" class="rounded"/>
+                            <span>{{ col.label }}</span>
+                        </label>
+                    </div>
+                </div>
+            </details>
         </div>
       </div>
 
@@ -123,77 +168,50 @@ const breadcrumbs: BreadcrumbItem[] = [
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium uppercase">Tipo</th>
-                <th class="px-6 py-3 text-left text-xs font-medium uppercase">Folio</th>
-                <th class="px-6 py-3 text-left text-xs font-medium uppercase">Asunto</th>
-                <th class="px-6 py-3 text-left text-xs font-medium uppercase">Remitente / Destinatario</th>
-                <th class="px-6 py-3 text-left text-xs font-medium uppercase">Estado</th>
-                <th class="px-6 py-3 text-left text-xs font-medium uppercase">Prioridad</th>
-                <th class="px-6 py-3 text-left text-xs font-medium uppercase">Fecha Reg.</th>
-                <th class="px-6 py-3 text-right text-xs font-medium uppercase">Acciones</th>
+                <th v-for="header in visibleHeaders" :key="header.key" class="px-6 py-3 text-left text-xs font-medium uppercase">
+                    {{ header.label }}
+                </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
               <tr v-if="oficios.data.length === 0">
-                <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500">
-                  No se encontraron oficios.
-                </td>
+                <td :colspan="visibleHeaders.length" class="px-6 py-4 text-center text-sm">No se encontraron oficios.</td>
               </tr>
               <tr v-for="oficio in oficios.data" :key="oficio.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <span v-if="oficio.tipo === 'entrada'" class="inline-flex items-center text-blue-600 dark:text-blue-400">
-                        <ArrowRight class="w-4 h-4 mr-1"/> Entrada
-                    </span>
-                    <span v-else class="inline-flex items-center text-green-600 dark:text-green-400">
-                        <ArrowLeft class="w-4 h-4 mr-1"/> Salida
-                    </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">{{ oficio.folio_externo || oficio.folio_salida || 'N/A' }}</td>
-                <td class="px-6 py-4 text-sm text-gray-600">{{ oficio.asunto }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ oficio.remitente || oficio.destinatario || 'N/A' }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="statusClasses(oficio.status)">
-                        {{ oficio.status || 'N/A' }}
-                    </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="priorityClasses(oficio.prioridad)">
-                        {{ oficio.prioridad || 'N/A' }}
-                    </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ formatDate(oficio.created_at) }}</td>
-                
-                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <div class="flex justify-end space-x-4 items-center">
-                    <!-- Botón de Descarga -->
-                    <a 
-                        v-if="oficio.documentoPrincipal" 
-                        :href="`/storage/${oficio.documentoPrincipal.ruta_almacenamiento}`" 
-                        target="_blank"
-                        class="text-green-600 hover:text-green-800"
-                        title="Descargar Documento Principal"
-                    >
-                        <Download class="w-5 h-5" />
-                    </a>
-                    <span v-else class="text-gray-400 text-xs" title="Sin documento adjunto">-</span>
-                    
-                    <!-- Botón de Detalles -->
-                    <Link :href="`/oficios/${oficio.id}`" class="text-blue-600 hover:text-blue-800" title="Ver Detalles del Oficio">
-                        <FileText class="w-5 h-5" />
-                    </Link>
-
-                    <!-- Botón de Editar -->
-                    <Link :href="`/oficios/${oficio.id}/edit`" class="text-indigo-600 hover:text-indigo-800" title="Editar Oficio">
-                      <Edit class="w-5 h-5" />
-                    </Link>
-                  </div>
+                <td v-for="col in visibleHeaders" :key="col.key" class="px-6 py-4 whitespace-nowrap text-sm">
+                    <template v-if="col.key === 'acciones'">
+                      <OficioActionButtons :oficio="oficio" />
+                    </template>
+                    <template v-else-if="col.key === 'tipo'">
+                        <span v-if="oficio.tipo === 'entrada'" class="inline-flex items-center text-blue-600"><ArrowRight class="w-4 h-4 mr-1"/> Entrada</span>
+                        <span v-else class="inline-flex items-center text-green-600"><ArrowLeft class="w-4 h-4 mr-1"/> Salida</span>
+                    </template>
+                    <template v-else-if="col.key === 'folio'">{{ oficio.folio_externo || oficio.folio_salida || 'N/A' }}</template>
+                    <template v-else-if="col.key === 'asunto'">{{ oficio.asunto }}</template>
+                    <template v-else-if="col.key === 'status'"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="statusClasses(oficio.status)">{{ oficio.status }}</span></template>
+                    <template v-else-if="col.key === 'prioridad'"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full" :class="priorityClasses(oficio.prioridad)">{{ oficio.prioridad }}</span></template>
+                    <template v-else-if="col.key === 'fechaRegistro'">{{ formatDate(oficio.created_at) }}</template>
+                    <template v-else-if="col.key === 'folioInterno'">{{ oficio.folio_interno || 'N/A' }}</template>
+                    <template v-else-if="col.key === 'expediente'"><Link v-if="oficio.expediente" :href="`/expedientes/${oficio.expediente.id}`" class="text-blue-600 hover:underline">{{ oficio.expediente.numero_expediente }}</Link><span v-else>N/A</span></template>
+                    <template v-else-if="col.key === 'remitente_destinatario'">{{ oficio.remitente || oficio.destinatario || 'N/A' }}</template>
+                    <template v-else-if="col.key === 'descripcion'">{{ oficio.descripcion?.substring(0, 30) }}...</template>
+                    <template v-else-if="col.key === 'fechaRecepcion'">{{ formatDate(oficio.fecha_recepcion) }}</template>
+                    <template v-else-if="col.key === 'fechaLimite'">{{ formatDate(oficio.fecha_limite) }}</template>
+                    <template v-else-if="col.key === 'registradoPor'">{{ oficio.recibidoPor?.name || 'Sistema' }}</template>
+                    <template v-else-if="col.key === 'areas'">{{ oficio.expediente?.areas.map(a => a.nombre).join(', ') || 'N/A' }}</template>
+                    <template v-else-if="col.key === 'asignadoA'">{{ oficio.permissions.map(p => p.user.name).join(', ') || 'N/A' }}</template>
+                    <template v-else-if="col.key === 'respondeA'"><Link v-if="oficio.respuestaA" :href="`/oficios/${oficio.respuestaA.id}`" class="text-blue-600 hover:underline">{{ oficio.respuestaA.folio_interno }}</Link><span v-else>-</span></template>
+                    <template v-else-if="col.key === 'turnoDGAF'">
+                        <span v-if="oficio.tiene_turno_dgaf" class="text-green-500 font-bold">Sí</span><span v-else>-</span>
+                    </template>
+                    <template v-else-if="col.key === 'anexos'">{{ oficio.documentos.length - (oficio.documentoPrincipal ? 1 : 0) }}</template>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
         
-        <!-- Paginación -->
+        <!-- CORRECCIÓN: Se añade la sección de paginación completa -->
         <div v-if="oficios.links.length > 3" class="flex justify-center mt-6">
           <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
             <Link
@@ -214,3 +232,4 @@ const breadcrumbs: BreadcrumbItem[] = [
     </div>
   </AppLayout>
 </template>
+

@@ -11,11 +11,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Illuminate\Validation\Rule;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests; // Se importa la herramienta
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class OficioController extends Controller
 {
-    use AuthorizesRequests; // Se usa la herramienta
+    use AuthorizesRequests;
 
     /**
      * Muestra una lista de oficios aplicando la lógica de permisos.
@@ -23,9 +23,18 @@ class OficioController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $query = Oficio::query()->with(['expediente.areas', 'documentoPrincipal', 'recibidoPor:id,name']);
+        
+        // --- CORRECCIÓN: Se elimina la carga de 'documentoPrincipal' ---
+        // El Accessor en el modelo Oficio.php se encargará de esto automáticamente.
+        $query = Oficio::query()->with([
+            'expediente.areas', 
+            'documentos', // Al cargar 'documentos', el accessor 'documentoPrincipal' ya estará disponible
+            'recibidoPor:id,name',
+            'permissions.user:id,name',
+            'respuestaA:id,folio_interno'
+        ]);
 
-        // La lógica de filtrado se mantiene aquí para construir la consulta principal
+        // La lógica de filtrado por permisos se mantiene igual
         $query->where(function ($q) use ($user) {
             if (in_array($user->role, ['admin', 'director'])) {
                 // Sin filtro, acceso total
@@ -49,6 +58,7 @@ class OficioController extends Controller
             }
         });
 
+        // La lógica de búsqueda por texto se mantiene igual
         $query->when($request->input('search'), function ($q, $search) {
             $q->where('folio_externo', 'like', "%{$search}%")
               ->orWhere('folio_salida', 'like', "%{$search}%")
@@ -68,7 +78,6 @@ class OficioController extends Controller
      */
     public function show(Oficio $oficio)
     {
-        // Se llama a la Policy para verificar el permiso 'view'
         $this->authorize('view', $oficio);
 
         $oficio->load([
@@ -90,13 +99,13 @@ class OficioController extends Controller
      */
     public function edit(Oficio $oficio)
     {
-        // Se llama a la Policy para verificar el permiso 'update'
         $this->authorize('update', $oficio);
 
         $oficio->load(['expediente']);
         
         return Inertia::render('Oficios/Edit', [
             'oficio' => $oficio,
+            // Aquí podrías necesitar enviar datos adicionales para los selects del formulario
         ]);
     }
 
@@ -105,7 +114,6 @@ class OficioController extends Controller
      */
     public function update(Request $request, Oficio $oficio)
     {
-        // Se llama a la Policy para verificar el permiso 'update'
         $this->authorize('update', $oficio);
         
         $validated = $request->validate([
@@ -115,6 +123,7 @@ class OficioController extends Controller
             'status' => 'required|string|max:255',
             'resolucion' => 'nullable|string',
             'oficio_respuesta_id' => 'nullable|exists:oficios,id',
+            // Añadir aquí cualquier otro campo que se pueda editar
         ]);
 
         $oficio->update($validated);
@@ -127,7 +136,6 @@ class OficioController extends Controller
      */
     public function destroy(Oficio $oficio)
     {
-        // Se llama a la Policy para verificar el permiso 'delete'
         $this->authorize('delete', $oficio);
 
         DB::transaction(function () use ($oficio) {
