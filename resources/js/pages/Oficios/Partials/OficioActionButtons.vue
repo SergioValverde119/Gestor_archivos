@@ -1,37 +1,47 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Eye, Edit, Download } from 'lucide-vue-next';
+import { Eye, Edit, Download, FileText } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 // --- Definición de Tipos ---
 interface Documento { 
     id: number; 
+    nombre_documento: string;
     ruta_almacenamiento: string; 
+    rol_documento: 'principal' | 'anexo';
 }
 
 interface Oficio {
   id: number;
-  documentoPrincipal?: Documento | null;
+  documentos: Documento[]; // El componente recibe la lista completa de documentos
 }
 
 const props = defineProps<{
   oficio: Oficio;
 }>();
+
+// --- Lógica para encontrar el documento principal ---
+const documentoPrincipal = computed(() => {
+    if (!props.oficio.documentos || props.oficio.documentos.length === 0) {
+        return null;
+    }
+    return props.oficio.documentos.find(doc => doc.rol_documento === 'principal');
+});
+
 </script>
 
 <template>
     <div class="flex justify-start space-x-4 items-center">
-        <!-- Botón de Descarga (Ahora siempre visible) -->
+        <!-- Botón de Descarga -->
         <a 
-            :href="oficio.documentoPrincipal ? `/documentos/${oficio.documentoPrincipal.id}/download` : '#'" 
-            :class="{
-                'text-blue-500 hover:text-blue-700': oficio.documentoPrincipal,
-                'text-gray-400 pointer-events-none': !oficio.documentoPrincipal
-            }"
+            v-if="documentoPrincipal" 
+            :href="`/documentos/${documentoPrincipal.id}/download`" 
+            class="text-blue-500 hover:text-blue-700" 
             title="Descargar Documento Principal"
-            @click.prevent="!oficio.documentoPrincipal && $event.preventDefault()"
         >
-            <Download class="w-5 h-5" />
+            <FileText class="w-5 h-5" />
         </a>
+        <span v-else class="text-gray-400 w-5 h-5 flex items-center justify-center" title="Sin documento principal adjunto">-</span>
         
         <!-- Botón de Visualizar -->
         <Link 

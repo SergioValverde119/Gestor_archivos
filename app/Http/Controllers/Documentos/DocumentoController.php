@@ -18,18 +18,19 @@ class DocumentoController extends Controller
      */
     public function download(Documento $documento)
     {
-        // Usa la OficioPolicy para verificar si el usuario puede ver el oficio padre
+        // 1. Se verifica si el usuario tiene permiso para ver el oficio al que pertenece este documento.
         $this->authorize('view', $documento->oficio);
 
-        // Construye la ruta completa al archivo en el servidor
-        $path = storage_path('app/public/' . $documento->ruta_almacenamiento);
-
-        // Verifica si el archivo existe antes de intentar descargarlo
-        if (!file_exists($path)) {
-            abort(404, 'El archivo solicitado no fue encontrado.');
+        // 2. Se comprueba que el archivo exista en el disco público.
+        if (!Storage::disk('public')->exists($documento->ruta_almacenamiento)) {
+            abort(404, 'El archivo solicitado no fue encontrado en el disco.');
         }
 
-        // Usa el helper 'response()->download()' para una descarga más directa y segura
+        // --- CORRECCIÓN: Se utiliza el helper response()->download() para mayor compatibilidad ---
+        // 3. Se construye la ruta completa al archivo en el servidor.
+        $path = storage_path('app/public/' . $documento->ruta_almacenamiento);
+
+        // 4. Se entrega el archivo para su descarga.
         return response()->download($path, $documento->nombre_documento);
     }
 

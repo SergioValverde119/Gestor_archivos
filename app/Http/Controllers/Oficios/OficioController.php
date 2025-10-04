@@ -17,24 +17,19 @@ class OficioController extends Controller
 {
     use AuthorizesRequests;
 
-    /**
-     * Muestra una lista de oficios aplicando la lógica de permisos.
-     */
     public function index(Request $request)
     {
         $user = Auth::user();
         
-        // --- CORRECCIÓN: Se elimina la carga de 'documentoPrincipal' ---
-        // El Accessor en el modelo Oficio.php se encargará de esto automáticamente.
         $query = Oficio::query()->with([
             'expediente.areas', 
-            'documentos', // Al cargar 'documentos', el accessor 'documentoPrincipal' ya estará disponible
+            'documentos',
             'recibidoPor:id,name',
             'permissions.user:id,name',
             'respuestaA:id,folio_interno'
         ]);
 
-        // La lógica de filtrado por permisos se mantiene igual
+        // La lógica de filtrado por permisos no cambia
         $query->where(function ($q) use ($user) {
             if (in_array($user->role, ['admin', 'director'])) {
                 // Sin filtro, acceso total
@@ -49,27 +44,75 @@ class OficioController extends Controller
                     $permissionQuery->whereHas('permissions', function ($pQuery) use ($user) {
                         $pQuery->where('user_id', $user->id)->where('permissible_type', Oficio::class);
                     })
-                    ->orWhereHas('expediente', function ($expedienteQuery) use ($user) {
-                        $expedienteQuery->whereHas('permissions', function ($pQuery) use ($user) {
-                            $pQuery->where('user_id', $user->id)->where('permissible_type', Expediente::class);
+                        ->orWhereHas('expediente', function ($expedienteQuery) use ($user) {
+                            $expedienteQuery->whereHas('permissions', function ($pQuery) use ($user) {
+                                $pQuery->where('user_id', $user->id)->where('permissible_type', Expediente::class);
+                            });
                         });
-                    });
                 });
             }
         });
 
-        // La lógica de búsqueda por texto se mantiene igual
+        // --- LÓGICA DE BÚSQUEDA Y FILTROS ---
+        $request->validate([
+            'sort' => 'nullable|string|in:folio,asunto,status,prioridad,fechaRegistro',
+            'direction' => 'nullable|string|in:asc,desc',
+            'tiene_turno_dgaf' => 'nullable|in:true,false',
+            'tipo' => ['nullable', Rule::in(['entrada', 'salida'])],
+            'per_page' => 'nullable|integer|in:8,15,25,50',
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
+        ]);
+
         $query->when($request->input('search'), function ($q, $search) {
-            $q->where('folio_externo', 'like', "%{$search}%")
-              ->orWhere('folio_salida', 'like', "%{$search}%")
-              ->orWhere('asunto', 'like', "%{$search}%");
+            $q->where(function($sub) use ($search) {
+                $sub->where('folio_externo', 'like', "%{$search}%")
+                    ->orWhere('folio_salida', 'like', "%{$search}%")
+                    ->orWhere('asunto', 'like', "%{$search}%");
+            });
         });
 
-        $oficios = $query->latest()->paginate(10)->withQueryString();
+        if ($request->has('tiene_turno_dgaf') && $request->input('tiene_turno_dgaf') !== null) {
+             $query->where('tiene_turno_dgaf', $request->input('tiene_turno_dgaf') === 'true');
+        }
+
+    
+        
+        $query->when($request->input('tipo'), function ($q, $tipo) {
+            $q->where('tipo', $tipo);
+        });
+
+        $query->when($request->input('date_from'), function ($q, $dateFrom) {
+        $q->whereDate('created_at', '>=', $dateFrom);
+        });
+
+        $query->when($request->input('date_to'), function ($q, $dateTo) {
+            $q->whereDate('created_at', '<=', $dateTo);
+        });
+
+        $sortColumn = $request->input('sort');
+        $sortDirection = $request->input('direction', 'asc');
+
+        $columnMap = [
+            'folio' => 'folio_externo', // Puedes decidir por cuál ordenar por defecto
+            'asunto' => 'asunto',
+            'status' => 'status',
+            'prioridad' => 'prioridad',
+            'fechaRegistro' => 'created_at',
+        ];
+
+        if ($sortColumn && isset($columnMap[$sortColumn])) {
+            $query->orderBy($columnMap[$sortColumn], $sortDirection);
+        } else {
+            $query->latest('created_at');
+        }
+        
+        $perPage = $request->input('per_page', 8); // Por defecto, 8 registros
+        $oficios = $query->paginate($perPage)->withQueryString();
 
         return Inertia::render('Oficios/Index', [
             'oficios' => $oficios,
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'sort', 'direction', 'tiene_turno_dgaf','tipo','per_page', 'date_from', 'date_to']),
         ]);
     }
 
@@ -82,7 +125,7 @@ class OficioController extends Controller
 
         $oficio->load([
             'expediente.areas',
-            'expediente.oficios' => fn($q) => $q->with('documentoPrincipal')->orderBy('created_at'),
+            'expediente.oficios' => fn($q) => $q->with('documentos')->orderBy('created_at'), // También se simplifica aquí
             'documentos',
             'recibidoPor:id,name',
             'respuestaA',
@@ -105,7 +148,6 @@ class OficioController extends Controller
         
         return Inertia::render('Oficios/Edit', [
             'oficio' => $oficio,
-            // Aquí podrías necesitar enviar datos adicionales para los selects del formulario
         ]);
     }
 
@@ -123,7 +165,6 @@ class OficioController extends Controller
             'status' => 'required|string|max:255',
             'resolucion' => 'nullable|string',
             'oficio_respuesta_id' => 'nullable|exists:oficios,id',
-            // Añadir aquí cualquier otro campo que se pueda editar
         ]);
 
         $oficio->update($validated);
