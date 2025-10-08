@@ -17,6 +17,9 @@ class OficioController extends Controller
 {
     use AuthorizesRequests;
 
+    /**
+     * Muestra una lista de oficios aplicando la lógica de permisos, filtros y ordenamiento.
+     */
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -44,24 +47,30 @@ class OficioController extends Controller
                     $permissionQuery->whereHas('permissions', function ($pQuery) use ($user) {
                         $pQuery->where('user_id', $user->id)->where('permissible_type', Oficio::class);
                     })
-                        ->orWhereHas('expediente', function ($expedienteQuery) use ($user) {
-                            $expedienteQuery->whereHas('permissions', function ($pQuery) use ($user) {
-                                $pQuery->where('user_id', $user->id)->where('permissible_type', Expediente::class);
-                            });
+                    ->orWhereHas('expediente', function ($expedienteQuery) use ($user) {
+                        $expedienteQuery->whereHas('permissions', function ($pQuery) use ($user) {
+                            $pQuery->where('user_id', $user->id)->where('permissible_type', Expediente::class);
                         });
+                    });
                 });
             }
         });
 
         // --- LÓGICA DE BÚSQUEDA Y FILTROS ---
         $request->validate([
-            'sort' => 'nullable|string|in:folio,asunto,status,prioridad,fechaRegistro',
+            'sort' => 'nullable|string|in:folio,asunto,status,prioridad,fechaRegistro,fechaRecepcion,fechaLimite',
             'direction' => 'nullable|string|in:asc,desc',
             'tiene_turno_dgaf' => 'nullable|in:true,false',
             'tipo' => ['nullable', Rule::in(['entrada', 'salida'])],
             'per_page' => 'nullable|integer|in:8,15,25,50',
             'date_from' => 'nullable|date',
             'date_to' => 'nullable|date|after_or_equal:date_from',
+            'recepcion_from' => 'nullable|date',
+            'recepcion_to' => 'nullable|date|after_or_equal:recepcion_from',
+            'limite_from' => 'nullable|date',
+            'limite_to' => 'nullable|date|after_or_equal:limite_from',
+            'area_ids' => 'nullable|array',
+            'area_ids.*' => 'integer|exists:areas,id',
         ]);
 
         $query->when($request->input('search'), function ($q, $search) {
@@ -75,30 +84,37 @@ class OficioController extends Controller
         if ($request->has('tiene_turno_dgaf') && $request->input('tiene_turno_dgaf') !== null) {
              $query->where('tiene_turno_dgaf', $request->input('tiene_turno_dgaf') === 'true');
         }
-
-    
         
-        $query->when($request->input('tipo'), function ($q, $tipo) {
-            $q->where('tipo', $tipo);
+        $query->when($request->input('tipo'), fn($q, $tipo) => $q->where('tipo', $tipo));
+        
+        // Filtros de Rango de Fechas
+        $query->when($request->input('date_from'), fn($q, $date) => $q->whereNotNull('created_at')->whereDate('created_at', '>=', $date));
+        $query->when($request->input('date_to'), fn($q, $date) => $q->whereNotNull('created_at')->whereDate('created_at', '<=', $date));
+        $query->when($request->input('recepcion_from'), fn($q, $date) => $q->whereNotNull('fecha_recepcion')->whereDate('fecha_recepcion', '>=', $date));
+        $query->when($request->input('recepcion_to'), fn($q, $date) => $q->whereNotNull('fecha_recepcion')->whereDate('fecha_recepcion', '<=', $date));
+        $query->when($request->input('limite_from'), fn($q, $date) => $q->whereNotNull('fecha_limite')->whereDate('fecha_limite', '>=', $date));
+        $query->when($request->input('limite_to'), fn($q, $date) => $q->whereNotNull('fecha_limite')->whereDate('fecha_limite', '<=', $date));
+
+        // Filtro por Áreas Involucradas
+
+        $query->when($request->input('area_ids'), function ($q, $areaIds) {
+            $q->whereHas('expediente.areas', function ($areaQuery) use ($areaIds) {
+                $areaQuery->whereIn('areas.id', $areaIds);
+            });
         });
 
-        $query->when($request->input('date_from'), function ($q, $dateFrom) {
-        $q->whereDate('created_at', '>=', $dateFrom);
-        });
-
-        $query->when($request->input('date_to'), function ($q, $dateTo) {
-            $q->whereDate('created_at', '<=', $dateTo);
-        });
-
+        
         $sortColumn = $request->input('sort');
         $sortDirection = $request->input('direction', 'asc');
 
         $columnMap = [
-            'folio' => 'folio_externo', // Puedes decidir por cuál ordenar por defecto
+            'folio' => 'folio_externo',
             'asunto' => 'asunto',
             'status' => 'status',
             'prioridad' => 'prioridad',
             'fechaRegistro' => 'created_at',
+            'fechaRecepcion' => 'fecha_recepcion',
+            'fechaLimite' => 'fecha_limite',
         ];
 
         if ($sortColumn && isset($columnMap[$sortColumn])) {
@@ -107,12 +123,12 @@ class OficioController extends Controller
             $query->latest('created_at');
         }
         
-        $perPage = $request->input('per_page', 8); // Por defecto, 8 registros
+        $perPage = $request->input('per_page', 8);
         $oficios = $query->paginate($perPage)->withQueryString();
 
         return Inertia::render('Oficios/Index', [
             'oficios' => $oficios,
-            'filters' => $request->only(['search', 'sort', 'direction', 'tiene_turno_dgaf','tipo','per_page', 'date_from', 'date_to']),
+            'filters' => $request->only(['search', 'sort', 'direction', 'tiene_turno_dgaf','tipo','per_page', 'date_from', 'date_to', 'recepcion_from', 'recepcion_to', 'limite_from', 'limite_to']),
         ]);
     }
 
@@ -125,7 +141,7 @@ class OficioController extends Controller
 
         $oficio->load([
             'expediente.areas',
-            'expediente.oficios' => fn($q) => $q->with('documentos')->orderBy('created_at'), // También se simplifica aquí
+            'expediente.oficios' => fn($q) => $q->with('documentos')->orderBy('created_at'),
             'documentos',
             'recibidoPor:id,name',
             'respuestaA',

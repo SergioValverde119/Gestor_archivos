@@ -39,15 +39,16 @@ interface Oficio {
 interface PaginationLink { url: string | null; label: string; active: boolean; }
 interface PaginatedOficios { data: Oficio[]; links: PaginationLink[]; }
 
+
 const props = defineProps<{
   oficios: PaginatedOficios;
   visibleHeaders: { key: string; label: string; }[];
   filters: any;
+  areas: Area[]; // <-- Se asegura de que reciba la lista de áreas
 }>();
 
 const emit = defineEmits(['sort', 'update:filters']);
 
-// --- Funciones que se pasan a los hijos ---
 const handleSort = (payload: { column: string, direction: 'asc' | 'desc' }) => {
     emit('sort', payload);
 };
@@ -55,6 +56,15 @@ const handleSort = (payload: { column: string, direction: 'asc' | 'desc' }) => {
 const handleFilterUpdate = (newFilters: any) => {
     emit('update:filters', newFilters);
 }
+
+const placeholderRowCount = computed(() => {
+  const minRows = 8;
+  const dataLength = props.oficios.data.length;
+  if (dataLength > 0 && dataLength < minRows) {
+    return minRows - dataLength;
+  }
+  return 0;
+});
 
 </script>
 
@@ -66,13 +76,14 @@ const handleFilterUpdate = (newFilters: any) => {
             <TableHeader 
                 :visible-headers="visibleHeaders" 
                 :filters="filters" 
+                :areas="props.areas"
                 @sort="handleSort"
                 @update:filters="handleFilterUpdate"
             />
 
             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
               <tr v-if="oficios.data.length === 0">
-                <td :colspan="visibleHeaders.length" class="px-6 py-4 text-center text-sm">No se encontraron oficios que coincidan con los filtros.</td>
+                <td :colspan="visibleHeaders.length" class="px-6 py-20 text-center text-sm text-gray-500">No se encontraron oficios.</td>
               </tr>
               <TableRow 
                 v-for="oficio in oficios.data" 
@@ -80,12 +91,14 @@ const handleFilterUpdate = (newFilters: any) => {
                 :oficio="oficio"
                 :visible-headers="visibleHeaders"
               />
+               <tr v-for="n in placeholderRowCount" :key="`placeholder-${n}`">
+                  <td :colspan="visibleHeaders.length" class="px-6 py-4 h-[65px]">&nbsp;</td>
+              </tr>
             </tbody>
           </table>
         </div>
-
-        <!-- NUEVO: Selector para "Mostrar por página" -->
-         <div v-if="oficios.links.length > 3" class="flex items-center justify-between mt-8">
+        
+        <div v-if="oficios.links.length > 3" class="flex items-center justify-between mt-8">
             <div class="flex items-center space-x-2 text-sm">
                 <label for="per_page">Mostrar:</label>
                 <select id="per_page" v-model="filters.per_page" class="rounded-md shadow-sm border-gray-300">
@@ -96,22 +109,18 @@ const handleFilterUpdate = (newFilters: any) => {
                 </select>
                 <span class="text-gray-600">registros</span>
             </div>
-            
-            
-        
-        <!-- Paginación -->
-        <div v-if="oficios.links.length > 3" class="flex justify-center mt-6">
-          <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-            <Link
-              v-for="(link, key) in oficios.links"
-              :key="key"
-              :href="link.url ?? '#'"
-              class="relative inline-flex items-center px-4 py-2 border text-sm font-medium"
-              :class="{'bg-blue-600 text-white border-blue-600': link.active, 'hover:bg-gray-50 dark:hover:bg-gray-700': !link.active, 'opacity-50 pointer-events-none': !link.url}"
-              v-html="link.label"
-            />
-          </nav>
-        </div>
+
+            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+              <Link
+                v-for="(link, key) in oficios.links"
+                :key="key"
+                :href="link.url ?? '#'"
+                class="relative inline-flex items-center px-4 py-2 border text-sm font-medium"
+                :class="{'bg-blue-600 text-white': link.active, 'hover:bg-gray-50': !link.active, 'opacity-50': !link.url}"
+                v-html="link.label"
+              />
+            </nav>
         </div>
       </div>
 </template>
+
