@@ -18,23 +18,23 @@ const props = defineProps<{
 // --- Lógica para la Búsqueda ---
 const searchTerm = ref('');
 const isListVisible = ref(false);
+const rootEl = ref<HTMLElement | null>(null); // Referencia al div principal
 
-// Observador para invalidar la selección si el usuario edita el texto
+// Observador para invalidar la selección si el usuario edita el texto manualmente
 watch(searchTerm, (newValue) => {
-    // Si hay un ID seleccionado pero el texto ya no coincide, se resetea la selección.
-    // Esto fuerza al usuario a elegir siempre de la lista.
     if (props.form.oficio_respuesta_id) {
         const selectedOficio = props.searchableOficios.find(o => o.id === props.form.oficio_respuesta_id);
-        const expectedText = `Folio Interno: ${selectedOficio?.folio_interno} - ${selectedOficio?.asunto}`;
+        const folioOficio = selectedOficio?.folio_externo || selectedOficio?.folio_salida;
+        const expectedText = `Oficio: ${folioOficio} (Interno: ${selectedOficio?.folio_interno})`;
+        
         if (newValue !== expectedText) {
-            props.form.oficio_respuesta_id = null;
+            props.form.oficio_respuesta_id = null; // Invalida la selección
         }
     }
 });
 
 const filteredOficios = computed(() => {
     const search = searchTerm.value.toLowerCase();
-    // Si no hay búsqueda, muestra los más recientes. Si hay búsqueda, filtra.
     const source = searchTerm.value ? props.searchableOficios : [...props.searchableOficios].reverse();
     
     return source.filter(oficio => 
@@ -42,12 +42,13 @@ const filteredOficios = computed(() => {
         (oficio.folio_externo && oficio.folio_externo.toLowerCase().includes(search)) ||
         (oficio.folio_salida && oficio.folio_salida.toLowerCase().includes(search)) ||
         (oficio.asunto && oficio.asunto.toLowerCase().includes(search))
-    ).slice(0, 5); // Limitar a 10 resultados
+    ).slice(0, 5);
 });
 
 const selectOficio = (oficio: SearchableOficio) => {
     props.form.oficio_respuesta_id = oficio.id;
-    searchTerm.value = `Folio Interno: ${oficio.folio_interno} - ${oficio.asunto}`;
+    const folioOficio = oficio.folio_externo || oficio.folio_salida;
+    searchTerm.value = `Oficio: ${folioOficio} (Interno: ${oficio.folio_interno})`;
     isListVisible.value = false;
 };
 
@@ -55,11 +56,18 @@ const clearSelection = () => {
     props.form.oficio_respuesta_id = null;
     searchTerm.value = '';
 };
+
+// --- CORRECCIÓN: Lógica para cerrar la lista al hacer clic afuera ---
+const handleFocusOut = (event: FocusEvent) => {
+    // Si el nuevo elemento enfocado NO está dentro de este componente, se cierra la lista.
+    if (rootEl.value && !rootEl.value.contains(event.relatedTarget as Node)) {
+        isListVisible.value = false;
+    }
+}
 </script>
 
 <template>
-    <!-- Se envuelve todo en un div con @focusout para manejar el cierre de la lista -->
-    <div class="md:col-span-2 relative" @focusout="isListVisible = false">
+    <div class="md:col-span-2 relative" ref="rootEl" @focusout="handleFocusOut">
         <label for="oficio_respuesta_search" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Responder a Oficio (Opcional)</label>
         <div class="relative">
             <input 
@@ -90,14 +98,13 @@ const clearSelection = () => {
                     @mousedown.prevent="selectOficio(oficio)"
                     class="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
-                    <span class="font-semibold">Interno: {{ oficio.folio_interno }}</span> 
-                    <span class="text-sm text-gray-600 dark:text-gray-400"> - {{ oficio.asunto }}</span>
+                    <div class="flex flex-col">
+                        <span class="font-semibold">Oficio: {{ oficio.folio_externo || oficio.folio_salida }}</span>
+                        <span class="text-xs text-gray-500">Interno: {{ oficio.folio_interno }} | Asunto: {{ oficio.asunto }}</span>
+                    </div>
                 </li>
                 <li v-if="filteredOficios.length === 0 && searchTerm" class="px-4 py-2 text-sm text-gray-500">
                     No se encontraron coincidencias.
-                </li>
-                 <li v-if="!searchTerm" class="px-4 py-2 text-sm text-gray-500">
-                    Escribe para empezar a buscar...
                 </li>
             </ul>
         </div>

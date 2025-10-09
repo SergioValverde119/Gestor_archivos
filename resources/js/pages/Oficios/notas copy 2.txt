@@ -8,7 +8,7 @@ Cabecera: poder ordenarlo de menor a mayor o inverso
 
 Número de Expediente: El identificador de la "carpeta" o caso al que pertenece el oficio.
 
-Tipo: Si es de entrada o salida. Podemos mostrarlo con un icono (flecha hacia adentro o hacia afuera) o una etiqueta de color.
+--Tipo: Si es de entrada o salida. Podemos mostrarlo con un icono (flecha hacia adentro o hacia afuera) o una etiqueta de color.
 Cabecera: agrupados o solo entrada, o solo salida
 
 Remitente: Quién envía el oficio (para los de entrada).
@@ -17,10 +17,10 @@ Destinatario: A quién se envía el oficio (para los de salida).
 
 Registrado Por: El nombre del usuario del sistema que capturó el oficio (recibido_por_user_id).
 
-Fecha de Registro: El día y hora exactos en que se guardó en el sistema (created_at).
+--Fecha de Registro: El día y hora exactos en que se guardó en el sistema (created_at).
 cabecera: rango de fecha a buscar
 
-Fecha de Recepción: La fecha que viene en el documento físico (fecha_recepcion).
+--Fecha de Recepción: La fecha que viene en el documento físico (fecha_recepcion).
 cabecera: rango de fecha a seleccionar
 
 
@@ -31,11 +31,11 @@ Prioridad: El nivel de urgencia (Ordinario, Urgente, etc.). También se puede mo
 cabecera: agrupar o solo ordenarios, o solo urgentes, o solo extremadamente urgentes
 
 
-Fecha Límite: La fecha máxima para dar una respuesta. Podríamos calcular y mostrar los "días restantes".
+--Fecha Límite: La fecha máxima para dar una respuesta. Podríamos calcular y mostrar los "días restantes".
 rango de fecha
 
 
-Áreas Involucradas: Una lista de todas las áreas que tienen acceso al expediente de este oficio.
+--Áreas Involucradas: Una lista de todas las áreas que tienen acceso al expediente de este oficio.
 un menu desplegable para areas
 
 

@@ -25,7 +25,6 @@ class OficioSalidaController extends Controller
             'users' => User::where('role', 'operativo')->get(['id', 'name']),
             'searchableOficios' => Oficio::latest()->get(['id', 'folio_interno', 'folio_externo', 'folio_salida', 'asunto']),
             'nextFolioSalida' => $this->getNextFolio('salida'),
-            'nextFolioInterno' => $this->getNextFolio('interno'),
         ]);
     }
 
@@ -53,33 +52,23 @@ class OficioSalidaController extends Controller
 
         DB::transaction(function () use ($validated, $request) {
             $folioSalida = $this->getNextFolio('salida', true);
-            $folioInterno = $this->getNextFolio('interno', true);
             
             if (!empty($validated['oficio_respuesta_id'])) {
                 $oficioOriginal = Oficio::findOrFail($validated['oficio_respuesta_id']);
                 $expediente = $oficioOriginal->expediente;
-
-                // --- CORRECCIÓN: Se AÑADEN las nuevas áreas al expediente sin borrar las anteriores ---
-                if (!empty($validated['area_ids'])) {
-                    $expediente->areas()->syncWithoutDetaching($validated['area_ids']);
-                }
-
             } else {
-                 if (empty($validated['area_ids'])) {
-                    abort(422, 'Se requiere al menos un área para un nuevo expediente.');
-                }
                 $expediente = Expediente::create([
                     'numero_expediente' => $folioSalida,
                     'titulo' => $validated['asunto'] ?? 'Oficio de Salida sin Asunto',
                 ]);
-                $expediente->areas()->sync($validated['area_ids']);
+                $expediente->areas()->sync($validated['area_ids'] ?? []);
             }
 
             $oficioData = array_merge($validated, [
                 'tipo' => 'salida',
                 'folio_salida' => $folioSalida,
-                'folio_interno' => $folioInterno,
-                
+                'folio_interno' => null, // Se asegura de que el folio interno sea nulo
+                // El campo 'recibido_por_user_id' no aplica para oficios de salida
             ]);
 
             $oficio = $expediente->oficios()->create($oficioData);
@@ -118,7 +107,6 @@ class OficioSalidaController extends Controller
             }
             
             DB::table('folio_sequences')->where('name', 'salida')->increment('last_number');
-            DB::table('folio_sequences')->where('name', 'interno')->increment('last_number');
         });
 
         return redirect()->route('oficios.createSalida')->with('success', 'Oficio de Salida generado correctamente.');
@@ -138,7 +126,7 @@ class OficioSalidaController extends Controller
         if (!$sequence) {
             return '0001';
         }
-         
+        
         return str_pad($sequence->last_number + 1, 4, '0', STR_PAD_LEFT);
     }
 }

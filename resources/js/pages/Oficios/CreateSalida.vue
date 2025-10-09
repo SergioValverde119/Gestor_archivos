@@ -9,9 +9,9 @@ import AsignacionesSection from './Partials/AsignacionesSection.vue';
 import AreasSection from './Partials/AreasSection.vue';
 import SuccessPanel from './Partials/SuccessPanel.vue';
 import DocumentosSection from './Partials/DocumentosSection.vue'
-import AsuntoDescripcionSection from './Partials/AsuntoDescripcionSection.vue'; 
 import OficioRespuestaSection from './Partials/OficioRespuestaSection.vue';
-import  FormErrors  from './Partials/FormErrors.vue';
+import FormErrors from './Partials/FormErrors.vue';
+
 // --- Definiciones de Tipos ---
 interface Area { id: number; nombre: string; }
 interface User { id: number; name: string; }
@@ -22,36 +22,33 @@ const props = defineProps<{
   users: User[]; // Operativos
   searchableOficios: SearchableOficio[];
   nextFolioSalida: string;
-  nextFolioInterno: string;
   flash?: { success?: string; }
 }>();
 
-// --- Lógica de Éxito ---
-
-
 const flash = computed(() => usePage().props.flash as { success?: string });
 const submissionSuccessful = computed(() => !!flash.value?.success);
-const authUser = computed(() => usePage().props.auth.user as User);
-
 
 // --- El "Cerebro" del Formulario ---
 const form = useForm({
   folio_salida: props.nextFolioSalida,
-  folio_interno: props.nextFolioInterno,
   destinatario: '',
   asunto: '',
   descripcion: '',
   prioridad: 'Ordinario' as 'Ordinario' | 'Urgente' | 'Extremadamente Urgente',
   status: 'Enviado',
   documento_principal: null as File | null,
+  anexos: [] as File[],
   oficio_respuesta_id: null as number | null,
   area_ids: [null] as (number | null)[],
-  asignaciones: [],
+  asignaciones: [] as { user_id: number | null; permission: 'editor' | 'visualizador' }[],
 });
 
 
 const submit = () => {
-  form.post('/oficios/salida');
+    form.transform(data => ({
+      ...data,
+      area_ids: data.area_ids.filter(id => id !== null),
+  })).post('/oficios/salida');
 };
 
 
@@ -69,26 +66,22 @@ const breadcrumbs: BreadcrumbItem[] = [
       
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 transition-colors duration-300">
         
-
-
-
         <SuccessPanel 
             v-if="submissionSuccessful"
             title="¡Éxito!"
-            :message="flash.success ?? ''"
+            :message="flash?.success ?? 'El oficio ha sido generado correctamente.'"
         >
-                <Link
-                    href="/oficios/salida/crear"
-                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-                >
-                    Generar Nuevo Oficio de Salida
-                </Link>
+            <Link
+                href="/oficios/salida/crear"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+            >
+                Generar Nuevo Oficio de Salida
+            </Link>
         </SuccessPanel>
 
         <form v-else @submit.prevent="submit" class="space-y-6">
 
-       <FormErrors :form="form" />
-
+           <FormErrors :form="form" />
 
           <!-- SECCIÓN DE DATOS DEL OFICIO DE SALIDA -->
           <div class="border-b dark:border-gray-700 pb-6">
@@ -98,21 +91,26 @@ const breadcrumbs: BreadcrumbItem[] = [
                       <label for="folio_salida" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Folio de Salida (Generado)</label>
                       <input type="text" id="folio_salida" v-model="form.folio_salida" disabled class="mt-1 block w-full rounded-md shadow-sm bg-gray-100 dark:bg-gray-700" />
                   </div>
-                  <div>
-                      <label for="folio_interno" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Folio Interno (Generado)</label>
-                      <input type="text" id="folio_interno" v-model="form.folio_interno" disabled class="mt-1 block w-full rounded-md shadow-sm bg-gray-100 dark:bg-gray-700" />
-                  </div>
                   
                   <OficioRespuestaSection :form="form" :searchable-oficios="props.searchableOficios" />
                   
-                  
-
                   <div class="md:col-span-2">
                       <label for="destinatario" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Destinatario (Opcional)</label>
                       <input type="text" id="destinatario" v-model="form.destinatario" class="mt-1 block w-full rounded-md shadow-sm" />
                       <div v-if="form.errors.destinatario" class="text-red-500 text-sm mt-1">{{ form.errors.destinatario }}</div>
                   </div>
 
+                  <div class="md:col-span-2">
+                    <label for="asunto" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Asunto (Opcional)</label>
+                    <input type="text" id="asunto" v-model="form.asunto" class="mt-1 block w-full rounded-md shadow-sm" />
+                    <div v-if="form.errors.asunto" class="text-red-500 text-sm mt-1">{{ form.errors.asunto }}</div>
+                  </div>
+
+                  <div class="md:col-span-2">
+                      <label for="descripcion" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción (Opcional)</label>
+                      <textarea id="descripcion" v-model="form.descripcion" rows="3" class="mt-1 block w-full rounded-md shadow-sm"></textarea>
+                  </div>
+                  
                   <div>
                       <label for="prioridad" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Prioridad</label>
                       <select id="prioridad" v-model="form.prioridad" class="mt-1 block w-full rounded-md shadow-sm">
@@ -121,21 +119,21 @@ const breadcrumbs: BreadcrumbItem[] = [
                           <option>Extremadamente Urgente</option>
                       </select>
                   </div>
-
-                  <AsuntoDescripcionSection :form="form" />
               </div>
           </div>
+
           <DocumentosSection :form="form" />
-          <!-- SECCIÓN DE ÁREAS (condicional) -->
-          <AreasSection :form="form" :areas="props.areas" />
-          <!-- SECCIÓN DE ASIGNACIONES-->
-          <AsignacionesSection 
-          :form="form" 
-          :users="props.users" 
           
+          <AreasSection 
+            v-if="!form.oficio_respuesta_id"
+            :form="form" 
+            :areas="props.areas" 
           />
-
-
+          
+          <AsignacionesSection 
+            :form="form" 
+            :users="props.users" 
+          />
 
           <!-- Botones de Acción -->
           <div class="mt-6 flex justify-end space-x-4">
