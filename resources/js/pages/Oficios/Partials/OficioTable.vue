@@ -1,17 +1,11 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { ArrowUp, ArrowDown, ArrowRight, ArrowLeft } from 'lucide-vue-next';
-import OficioActionButtons from './OficioActionButtons.vue';
 import TableHeader from './TableHeader.vue';
 import TableRow from './TableRow.vue';
 
 // --- Definiciones de Tipos ---
-interface Documento { id: number; nombre_documento: string; ruta_almacenamiento: string; rol_documento: 'principal' | 'anexo'; }
 interface Area { id: number; nombre: string; }
-interface Expediente { id: number; numero_expediente: string; areas: Area[]; }
-interface User { id: number; name: string; }
-interface Permission { user: User; }
 interface Oficio {
   id: number;
   tipo: 'entrada' | 'salida';
@@ -39,23 +33,21 @@ interface Oficio {
 interface PaginationLink { url: string | null; label: string; active: boolean; }
 interface PaginatedOficios { data: Oficio[]; links: PaginationLink[]; }
 
+// --- CORRECCIÓN: Se usa defineModel para la comunicación bidireccional de los filtros ---
+const filters = defineModel('filters');
 
 const props = defineProps<{
   oficios: PaginatedOficios;
   visibleHeaders: { key: string; label: string; }[];
-  filters: any;
-  areas: Area[]; // <-- Se asegura de que reciba la lista de áreas
+  areas: Area[];
 }>();
 
-const emit = defineEmits(['sort', 'update:filters']);
+const emit = defineEmits(['sort']);
 
+// La función de ordenamiento ahora solo retransmite el evento
 const handleSort = (payload: { column: string, direction: 'asc' | 'desc' }) => {
     emit('sort', payload);
 };
-
-const handleFilterUpdate = (newFilters: any) => {
-    emit('update:filters', newFilters);
-}
 
 const placeholderRowCount = computed(() => {
   const minRows = 8;
@@ -75,10 +67,9 @@ const placeholderRowCount = computed(() => {
             
             <TableHeader 
                 :visible-headers="visibleHeaders" 
-                :filters="filters" 
+                v-model:filters="filters" 
                 :areas="props.areas"
                 @sort="handleSort"
-                @update:filters="handleFilterUpdate"
             />
 
             <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -123,4 +114,3 @@ const placeholderRowCount = computed(() => {
         </div>
       </div>
 </template>
-
