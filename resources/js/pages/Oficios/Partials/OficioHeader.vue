@@ -1,21 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
-
-// Define los tipos de datos que este componente espera recibir
-interface Oficio {
-  id: number;
-  asunto: string;
-  folio_externo: string | null;
-  folio_salida: string | null;
-  status: string;
-  prioridad: string;
-  expediente: {
-    id: number;
-    numero_expediente: string;
-  } | null;
-}
-
+import { type Oficio } from '@/types';
 const props = defineProps<{
   oficio: Oficio;
 }>();

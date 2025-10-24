@@ -7,7 +7,7 @@ export interface Auth {
 
 export interface BreadcrumbItem {
     title: string;
-    href: string;
+    href?: string; // <-- CORRECCIÓN: Se mantiene como opcional
 }
 
 export interface NavItem {
@@ -33,8 +33,6 @@ export interface User {
     created_at: string;
     updated_at: string;
 }
-
-
 
 export type BreadcrumbItemType = BreadcrumbItem;
 
@@ -74,16 +72,17 @@ export interface Oficio {
   folio_interno: string | null;
   remitente: string | null;
   destinatario: string | null;
-  asunto: string;
+  asunto: string | null;
   descripcion: string | null;
   status: string;
   prioridad: string;
+  resolucion: string | null; 
   fecha_recepcion: string | null;
   fecha_limite: string | null;
   tiene_turno_dgaf: boolean;
   folio_turno_dgaf: string | null;
   fecha_turno_dgaf: string | null;
-  expediente: Expediente | null;
+  expediente: ExpedienteConOficios | null; // <-- CORRECCIÓN: Debe usar el tipo completo
   recibidoPor: SimpleUser | null; // <-- Se usa el tipo simple
   created_at: string;
   documentos: Documento[];
@@ -92,6 +91,21 @@ export interface Oficio {
 }
 
 // --- NUEVO: Tipos Específicos de Página ---
+
+export interface OficioEnHistorial {
+  id: number;
+  tipo: 'entrada' | 'salida';
+  asunto: string;
+  created_at: string;
+  folio_externo: string | null;
+  folio_salida: string | null;
+  recibidoPor: SimpleUser | null;
+}
+
+// --- NUEVO: Interfaz para el expediente que incluye su historial ---
+export interface ExpedienteConOficios extends Expediente {
+  oficios: OficioEnHistorial[];
+}
 
 export interface PaginationLink { 
     url: string | null; 
@@ -113,5 +127,20 @@ export interface OficioFilters {
     per_page?: number;
     date_from?: string | null;
     date_to?: string | null;
+    // --- CORRECCIÓN: Se añaden los campos que faltaban ---
+    recepcion_from?: string | null;
+    recepcion_to?: string | null;
+    limite_from?: string | null;
+    limite_to?: string | null;
     area_ids?: number[];
 }
+
+export interface SearchableOficio {
+  id: number;
+  folio_interno: string | null;
+  folio_externo: string | null;
+  folio_salida: string | null;
+  asunto: string;
+}
+
+

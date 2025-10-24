@@ -1,23 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import { type Oficio } from '@/types';
 
-// --- Definición de Tipos ---
-interface User {
-    id: number;
-    name: string;
-}
-
-interface OficioRespuesta {
-    id: number;
-    folio_interno: string;
-}
-
-interface Oficio {
-  destinatario: string | null;
-  recibidoPor: User | null; // El controlador usa este campo para el creador
-  fecha_limite: string | null;
-  respuestaA: OficioRespuesta | null;
-}
 
 const props = defineProps<{
   oficio: Oficio;
@@ -61,3 +45,4 @@ const formatDate = (dateString: string | null) => {
         </dl>
     </div>
 </template>
+

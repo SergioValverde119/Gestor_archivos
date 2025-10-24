@@ -1,18 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Download, File } from 'lucide-vue-next';
-
-// --- Definición de Tipos ---
-interface Documento {
-    id: number;
-    nombre_documento: string;
-    rol_documento: 'principal' | 'anexo';
-}
-
-interface Oficio {
-  documentos: Documento[];
-}
-
+import { type Oficio } from '@/types';
 const props = defineProps<{
   oficio: Oficio;
 }>();

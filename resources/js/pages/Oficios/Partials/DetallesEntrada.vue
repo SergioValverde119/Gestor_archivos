@@ -1,28 +1,14 @@
 <script setup lang="ts">
-// --- Definición de Tipos ---
-interface User {
-    id: number;
-    name: string;
-}
-
-interface Oficio {
-  remitente: string | null;
-  fecha_recepcion: string | null;
-  recibidoPor: User | null;
-  tiene_turno_dgaf: boolean;
-  folio_turno_dgaf: string | null;
-  fecha_turno_dgaf: string | null;
-}
+import { type Oficio } from '@/types';
 
 const props = defineProps<{
   oficio: Oficio;
 }>();
 
-// Función para formatear fechas
+
 const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
-    // Ajuste para asegurar que se muestre la fecha local correcta
     const userTimezoneOffset = date.getTimezoneOffset() * 60000;
     return new Date(date.getTime() + userTimezoneOffset).toLocaleDateString('es-MX', {
         year: 'numeric', month: 'long', day: 'numeric'

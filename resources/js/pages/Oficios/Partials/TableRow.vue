@@ -3,37 +3,7 @@ import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { ArrowRight, ArrowLeft } from 'lucide-vue-next';
 import OficioActionButtons from './OficioActionButtons.vue';
-
-// --- Definiciones de Tipos ---
-interface Documento { id: number; nombre_documento: string; ruta_almacenamiento: string; rol_documento: 'principal' | 'anexo'; }
-interface Area { id: number; nombre: string; }
-interface Expediente { id: number; numero_expediente: string; areas: Area[]; }
-interface User { id: number; name: string; }
-interface Permission { user: User; }
-interface Oficio {
-  id: number;
-  tipo: 'entrada' | 'salida';
-  folio_externo: string | null;
-  folio_salida: string | null;
-  folio_interno: string | null;
-  remitente: string | null;
-  destinatario: string | null;
-  asunto: string;
-  descripcion: string | null;
-  status: string;
-  prioridad: string;
-  fecha_recepcion: string | null;
-  fecha_limite: string | null;
-  tiene_turno_dgaf: boolean;
-  folio_turno_dgaf: string | null;
-  fecha_turno_dgaf: string | null;
-  expediente: Expediente | null;
-  recibidoPor: User | null;
-  created_at: string;
-  documentos: Documento[];
-  permissions: Permission[];
-  respuestaA: { id: number; folio_interno: string; } | null;
-}
+import { type Oficio } from '@/types'; // Importa el tipo Oficio completo
 
 const props = defineProps<{
   oficio: Oficio;
@@ -44,7 +14,11 @@ const props = defineProps<{
 const formatDate = (dateString: string | null): string => {
   if (!dateString) return 'N/A';
   const date = new Date(dateString);
-  return date.toLocaleDateString('es-MX', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  // Ajuste para asegurar que se muestre la fecha local correcta
+  const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() + userTimezoneOffset).toLocaleDateString('es-MX', {
+    year: 'numeric', month: '2-digit', day: '2-digit'
+  });
 };
 
 const statusClasses = (status: string) => {
@@ -69,10 +43,8 @@ const priorityClasses = (priority: string) => {
 // Calcula el número de anexos
 const anexoCount = computed(() => {
     if (!props.oficio.documentos) return 0;
-    // Cuenta cuántos documentos NO son el 'principal'
     return props.oficio.documentos.filter(d => d.rol_documento === 'anexo').length;
 });
-
 </script>
 
 <template>

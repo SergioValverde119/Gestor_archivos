@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
+// --- CORRECCIÓN: Se importan los tipos desde el archivo central ---
+import { type BreadcrumbItem, type Oficio } from '@/types';
 
 // Importa todos los componentes finalizados
 import OficioHeader from './Partials/OficioHeader.vue';
@@ -11,43 +13,7 @@ import ListaDocumentos from './Partials/ListaDocumentos.vue';
 import AsignacionesCard from './Partials/AsignacionesCard.vue';
 import HistorialExpediente from './Partials/HistorialExpediente.vue';
 
-// --- Definición de Tipos Completa ---
-interface User { id: number; name: string; }
-interface Area { id: number; nombre: string; }
-interface OficioRespuesta { id: number; folio_interno: string; }
-interface Documento { id: number; nombre_documento: string; rol_documento: 'principal' | 'anexo'; }
-interface Permission { user: User; permission_level: 'editor' | 'visualizador'; }
-interface OficioEnHistorial { id: number; tipo: 'entrada' | 'salida'; asunto: string; created_at: string; folio_externo: string | null; folio_salida: string | null; recibidoPor: User | null; }
-
-
-
-interface Oficio {
-  id: number;
-  tipo: 'entrada' | 'salida';
-  asunto: string;
-  descripcion: string | null;
-  folio_externo: string | null;
-  folio_salida: string | null;
-  status: string;
-  prioridad: string;
-  remitente: string | null;
-  destinatario: string | null;
-  fecha_recepcion: string | null;
-  fecha_limite: string | null;
-  recibidoPor: User | null;
-  tiene_turno_dgaf: boolean;
-  folio_turno_dgaf: string | null;
-  fecha_turno_dgaf: string | null;
-  respuestaA: OficioRespuesta | null;
-  documentos: Documento[];
-  permissions: Permission[];
-  expediente: {
-    id: number;
-    numero_expediente: string;
-    areas: Area[];
-    oficios: OficioEnHistorial[]; // <-- Se añade la relación para el historial
-  } | null;
-}
+// --- (Las definiciones locales de tipos se han eliminado) ---
 
 const props = defineProps<{
   oficio: Oficio;
@@ -56,7 +22,7 @@ const props = defineProps<{
 const breadcrumbs: BreadcrumbItem[] = [
   { title: 'Oficios', href: '/oficios' },
   { title: props.oficio.expediente?.numero_expediente || 'Detalle', href: `/expedientes/${props.oficio.expediente?.id}` },
-  { title: props.oficio.asunto },
+  { title: props.oficio.asunto ?? 'Detalle del Oficio' },
 ];
 
 </script>

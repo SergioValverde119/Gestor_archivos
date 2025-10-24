@@ -1,31 +1,21 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Eye, Edit, Download, FileText } from 'lucide-vue-next';
+import { Eye, Edit, Download } from 'lucide-vue-next';
 import { computed } from 'vue';
-
-// --- Definición de Tipos ---
-interface Documento { 
-    id: number; 
-    nombre_documento: string;
-    ruta_almacenamiento: string; 
-    rol_documento: 'principal' | 'anexo';
-}
-
-interface Oficio {
-  id: number;
-  documentos: Documento[]; // El componente recibe la lista completa de documentos
-}
+import { type Oficio } from '@/types';
 
 const props = defineProps<{
   oficio: Oficio;
 }>();
 
 // --- Lógica para encontrar el documento principal ---
+// Esta propiedad calculada busca en la lista de documentos y encuentra el que es 'principal'.
 const documentoPrincipal = computed(() => {
     if (!props.oficio.documentos || props.oficio.documentos.length === 0) {
         return null;
     }
-    return props.oficio.documentos.find(doc => doc.rol_documento === 'principal');
+    // Se usa toLowerCase() para ser B- prueba de mayúsculas y minúsculas
+    return props.oficio.documentos.find(doc => doc.rol_documento.toLowerCase() === 'principal');
 });
 
 </script>
@@ -39,7 +29,7 @@ const documentoPrincipal = computed(() => {
             class="text-blue-500 hover:text-blue-700" 
             title="Descargar Documento Principal"
         >
-            <FileText class="w-5 h-5" />
+            <Download class="w-5 h-5" />
         </a>
         <span v-else class="text-gray-400 w-5 h-5 flex items-center justify-center" title="Sin documento principal adjunto">-</span>
         

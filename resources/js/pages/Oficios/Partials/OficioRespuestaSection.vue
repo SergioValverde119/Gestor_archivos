@@ -1,14 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
+import { type SearchableOficio } from '@/types';
 
-// --- Definiciones de Tipos ---
-interface SearchableOficio { 
-    id: number; 
-    folio_interno: string | null;
-    folio_externo: string | null;
-    folio_salida: string | null;
-    asunto: string; 
-}
 
 const props = defineProps<{
     form: any; // El objeto useForm de Inertia
@@ -25,7 +18,10 @@ watch(searchTerm, (newValue) => {
     if (props.form.oficio_respuesta_id) {
         const selectedOficio = props.searchableOficios.find(o => o.id === props.form.oficio_respuesta_id);
         const folioOficio = selectedOficio?.folio_externo || selectedOficio?.folio_salida;
-        const expectedText = `Oficio: ${folioOficio} (Interno: ${selectedOficio?.folio_interno})`;
+        let expectedText = `Oficio: ${folioOficio}`;
+        if (selectedOficio?.folio_interno) {
+            expectedText += ` (Interno: ${selectedOficio.folio_interno})`;
+        }
         
         if (newValue !== expectedText) {
             props.form.oficio_respuesta_id = null; // Invalida la selección
@@ -35,6 +31,7 @@ watch(searchTerm, (newValue) => {
 
 const filteredOficios = computed(() => {
     const search = searchTerm.value.toLowerCase();
+    // Si no hay búsqueda, muestra los 5 más recientes. Si hay búsqueda, filtra.
     const source = searchTerm.value ? props.searchableOficios : [...props.searchableOficios].reverse();
     
     return source.filter(oficio => 
@@ -48,7 +45,11 @@ const filteredOficios = computed(() => {
 const selectOficio = (oficio: SearchableOficio) => {
     props.form.oficio_respuesta_id = oficio.id;
     const folioOficio = oficio.folio_externo || oficio.folio_salida;
-    searchTerm.value = `Oficio: ${folioOficio} (Interno: ${oficio.folio_interno})`;
+    let displayText = `Oficio: ${folioOficio}`;
+    if (oficio.folio_interno) {
+        displayText += ` (Interno: ${oficio.folio_interno})`;
+    }
+    searchTerm.value = displayText;
     isListVisible.value = false;
 };
 
@@ -57,7 +58,7 @@ const clearSelection = () => {
     searchTerm.value = '';
 };
 
-// --- CORRECCIÓN: Lógica para cerrar la lista al hacer clic afuera ---
+// --- Lógica para cerrar la lista al hacer clic afuera ---
 const handleFocusOut = (event: FocusEvent) => {
     // Si el nuevo elemento enfocado NO está dentro de este componente, se cierra la lista.
     if (rootEl.value && !rootEl.value.contains(event.relatedTarget as Node)) {
@@ -67,6 +68,7 @@ const handleFocusOut = (event: FocusEvent) => {
 </script>
 
 <template>
+    <!-- Se envuelve todo en un div con @focusout para manejar el cierre de la lista -->
     <div class="md:col-span-2 relative" ref="rootEl" @focusout="handleFocusOut">
         <label for="oficio_respuesta_search" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Responder a Oficio (Opcional)</label>
         <div class="relative">
@@ -100,7 +102,8 @@ const handleFocusOut = (event: FocusEvent) => {
                 >
                     <div class="flex flex-col">
                         <span class="font-semibold">Oficio: {{ oficio.folio_externo || oficio.folio_salida }}</span>
-                        <span class="text-xs text-gray-500">Interno: {{ oficio.folio_interno }} | Asunto: {{ oficio.asunto }}</span>
+                        <span v-if="oficio.folio_interno" class="text-xs text-gray-500">Interno: {{ oficio.folio_interno }} | Asunto: {{ oficio.asunto }}</span>
+                        <span v-else class="text-xs text-gray-500">Asunto: {{ oficio.asunto }}</span>
                     </div>
                 </li>
                 <li v-if="filteredOficios.length === 0 && searchTerm" class="px-4 py-2 text-sm text-gray-500">

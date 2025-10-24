@@ -1,27 +1,10 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import { ArrowRight, ArrowLeft, FileText } from 'lucide-vue-next';
-
-// --- Definición de Tipos ---
-interface User {
-    id: number;
-    name: string;
-}
-interface OficioEnHistorial {
-    id: number;
-    tipo: 'entrada' | 'salida';
-    asunto: string;
-    created_at: string;
-    folio_externo: string | null;
-    folio_salida: string | null;
-    recibidoPor: User | null;
-}
-interface Expediente {
-    oficios: OficioEnHistorial[];
-}
+import { type ExpedienteConOficios } from '@/types';
 
 const props = defineProps<{
-  expediente: Expediente | null;
+  expediente: ExpedienteConOficios | null;
   oficioActualId: number;
 }>();
 

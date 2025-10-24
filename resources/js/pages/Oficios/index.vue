@@ -1,69 +1,29 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
 import { ref, watch, computed, onMounted } from 'vue';
 import { debounce } from 'lodash';
 import OficioTable from './Partials/OficioTable.vue';
 import { Search, ChevronDown, RefreshCw } from 'lucide-vue-next';
 
-// --- Definiciones de Tipos ---
-interface Documento { 
-    id: number; 
-    nombre_documento: string; 
-    ruta_almacenamiento: string; 
-    rol_documento: 'principal' | 'anexo'; 
-}
-interface Area { id: number; nombre: string; }
-interface Expediente { id: number; numero_expediente: string; areas: Area[]; }
-interface User { id: number; name: string; }
-interface Permission { user: User; }
-interface Oficio {
-  id: number;
-  tipo: 'entrada' | 'salida';
-  folio_externo: string | null;
-  folio_salida: string | null;
-  folio_interno: string | null;
-  remitente: string | null;
-  destinatario: string | null;
-  asunto: string;
-  descripcion: string | null;
-  status: string;
-  prioridad: string;
-  fecha_recepcion: string | null;
-  fecha_limite: string | null;
-  tiene_turno_dgaf: boolean;
-  folio_turno_dgaf: string | null;
-  fecha_turno_dgaf: string | null;
-  expediente: Expediente | null;
-  recibidoPor: User | null;
-  created_at: string;
-  documentos: Documento[];
-  permissions: Permission[];
-  respuestaA: { id: number; folio_interno: string; } | null;
-}
+// --- CORRECCIÓN: Se importan los tipos desde el archivo central ---
+import { 
+    type BreadcrumbItem,
+    type PaginatedOficios, 
+    type Area, 
+    type OficioFilters 
+} from '@/types';
 
-interface PaginatedOficios { data: Oficio[]; links: any[]; }
+// --- (Las definiciones locales de tipos se han eliminado) ---
 
 const props = defineProps<{
   oficios: PaginatedOficios;
   areas: Area[]; 
-  filters: {
-    search?: string;
-    // --- CORRECCIÓN: Se permite 'null' para el ordenamiento ---
-    sort?: string | null;
-    direction?: 'asc' | 'desc' | null;
-    tiene_turno_dgaf?: string | null;
-    tipo?: 'entrada' | 'salida' | null;
-    per_page?: number;
-    date_from?: string | null;
-    date_to?: string | null;
-    area_ids?: number[];
-  };
+  filters: OficioFilters;
 }>();
 
 // --- Lógica de Búsqueda y Filtros ---
-const filters = ref({
+const filters = ref<OficioFilters>({
     search: props.filters.search || '',
     sort: props.filters.sort,
     direction: props.filters.direction,
@@ -72,6 +32,10 @@ const filters = ref({
     per_page: props.filters.per_page || 8,
     date_from: props.filters.date_from,
     date_to: props.filters.date_to,
+    recepcion_from: props.filters.recepcion_from,
+    recepcion_to: props.filters.recepcion_to,
+    limite_from: props.filters.limite_from,
+    limite_to: props.filters.limite_to,
     area_ids: props.filters.area_ids || [],
 });
 
@@ -128,8 +92,12 @@ const visibleHeaders = computed(() => {
 watch(filters, debounce(() => {
     const queryParams: any = {};
     for (const key in filters.value) {
-        if (filters.value[key as keyof typeof filters.value] !== null && filters.value[key as keyof typeof filters.value] !== '') {
-            queryParams[key] = filters.value[key as keyof typeof filters.value];
+        const value = filters.value[key as keyof typeof filters.value];
+        // CORRECCIÓN: Se asegura de que los arrays vacíos no se envíen, pero el string de búsqueda vacío sí.
+        if (value !== null && (Array.isArray(value) ? value.length > 0 : value !== '')) {
+             queryParams[key] = value;
+        } else if (key === 'search' && value === '') {
+             queryParams[key] = '';
         }
     }
     router.get('/oficios', queryParams, { preserveState: true, replace: true });
@@ -152,6 +120,10 @@ const resetFilters = () => {
         per_page: 8,
         date_from: null,
         date_to: null,
+        recepcion_from: null,
+        recepcion_to: null,
+        limite_from: null,
+        limite_to: null,
         area_ids: [],
     };
 };
@@ -207,5 +179,3 @@ const breadcrumbs: BreadcrumbItem[] = [
     </div>
   </AppLayout>
 </template>
-
-// --- Lógica de Búsqueda y Filtros ---

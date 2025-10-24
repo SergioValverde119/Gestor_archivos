@@ -4,37 +4,11 @@ import { computed } from 'vue';
 import TableHeader from './TableHeader.vue';
 import TableRow from './TableRow.vue';
 
-// --- Definiciones de Tipos ---
-interface Area { id: number; nombre: string; }
-interface Oficio {
-  id: number;
-  tipo: 'entrada' | 'salida';
-  folio_externo: string | null;
-  folio_salida: string | null;
-  folio_interno: string | null;
-  remitente: string | null;
-  destinatario: string | null;
-  asunto: string;
-  descripcion: string | null;
-  status: string;
-  prioridad: string;
-  fecha_recepcion: string | null;
-  fecha_limite: string | null;
-  tiene_turno_dgaf: boolean;
-  folio_turno_dgaf: string | null;
-  fecha_turno_dgaf: string | null;
-  expediente: Expediente | null;
-  recibidoPor: User | null;
-  created_at: string;
-  documentos: Documento[];
-  permissions: Permission[];
-  respuestaA: { id: number; folio_interno: string; } | null;
-}
-interface PaginationLink { url: string | null; label: string; active: boolean; }
-interface PaginatedOficios { data: Oficio[]; links: PaginationLink[]; }
+// --- Se importan los tipos desde el archivo central ---
+import { type Area, type Oficio, type PaginatedOficios, type OficioFilters } from '@/types';
 
-// --- CORRECCIÓN: Se usa defineModel para la comunicación bidireccional de los filtros ---
-const filters = defineModel('filters');
+// --- CORRECCIÓN: Se marca el modelo de filtros como obligatorio ---
+const filters = defineModel<OficioFilters>('filters', { required: true });
 
 const props = defineProps<{
   oficios: PaginatedOficios;
@@ -49,9 +23,11 @@ const handleSort = (payload: { column: string, direction: 'asc' | 'desc' }) => {
     emit('sort', payload);
 };
 
+// Lógica para las filas de relleno (para que la tabla no se encoja)
 const placeholderRowCount = computed(() => {
   const minRows = 8;
   const dataLength = props.oficios.data.length;
+  // Solo añade placeholders si hay al menos una fila, pero menos que el mínimo
   if (dataLength > 0 && dataLength < minRows) {
     return minRows - dataLength;
   }
@@ -82,6 +58,7 @@ const placeholderRowCount = computed(() => {
                 :oficio="oficio"
                 :visible-headers="visibleHeaders"
               />
+               <!-- Se renderizan las filas de relleno para mantener la altura -->
                <tr v-for="n in placeholderRowCount" :key="`placeholder-${n}`">
                   <td :colspan="visibleHeaders.length" class="px-6 py-4 h-[65px]">&nbsp;</td>
               </tr>
@@ -89,9 +66,11 @@ const placeholderRowCount = computed(() => {
           </table>
         </div>
         
+        <!-- Paginación y Selector de "por página" -->
         <div v-if="oficios.links.length > 3" class="flex items-center justify-between mt-8">
             <div class="flex items-center space-x-2 text-sm">
                 <label for="per_page">Mostrar:</label>
+                <!-- CORRECCIÓN: Ahora 'filters' nunca será undefined -->
                 <select id="per_page" v-model="filters.per_page" class="rounded-md shadow-sm border-gray-300">
                     <option value="8">8</option>
                     <option value="15">15</option>

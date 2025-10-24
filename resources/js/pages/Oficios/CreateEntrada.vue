@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
 import { computed, ref } from 'vue';
+
+// --- Se importan los tipos desde el archivo central ---
+import { 
+    type BreadcrumbItem, 
+    type Area, 
+    type SimpleUser,
+    type User 
+} from '@/types';
 
 // Importa los componentes
 import OficioDataSection from './Partials/OficioDataSection.vue';
@@ -13,23 +20,17 @@ import AsignacionesSection from './Partials/AsignacionesSection.vue';
 import SuccessPanel from './Partials/SuccessPanel.vue';
 import FormErrors from './Partials/FormErrors.vue';
 import AsuntoDescripcionSection from './Partials/AsuntoDescripcionSection.vue';
-import OficioRespuestaSection from './Partials/OficioRespuestaSection.vue';
 
-// --- Definiciones de Tipos ---
-interface Area { id: number; nombre: string; }
-interface User { id: number; name: string; }
-interface SearchableOficio { id: number; folio_interno: string | null; folio_externo: string | null; folio_salida: string | null; asunto: string; }
+// --- (Las definiciones locales de tipos se han eliminado) ---
 
 const props = defineProps<{
   areas: Area[];
-  users: User[];
-  searchableOficios: SearchableOficio[];
-  allUsers: User[];
+  users: SimpleUser[];
+  allUsers: SimpleUser[];
   nextFolioInterno: string;
   flash?: { success?: string; }
 }>();
 
-// --- CORRECCIÓN: Usar una propiedad computada para la reactividad ---
 const flash = computed(() => usePage().props.flash as { success?: string });
 const submissionSuccessful = computed(() => !!flash.value?.success);
 const authUser = computed(() => usePage().props.auth.user as User);
@@ -42,22 +43,24 @@ const form = useForm({
   asunto: '',
   descripcion: '',
   fecha_recepcion: new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0],
-  fecha_limite: '' as string | null,
+  fecha_limite: null as string | null,
   prioridad: 'Ordinario' as 'Ordinario' | 'Urgente' | 'Extremadamente Urgente',
   status: 'Pendiente',
   documento_principal: null as File | null,
   anexos: [] as File[],
   recibido_por_user_id: authUser.value ? authUser.value.id : null,
-  area_ids: [],
-  oficio_respuesta_id: null as number | null,
-  asignaciones: [],
+  area_ids: [null] as (number|null)[],
+  asignaciones: [] as { user_id: number | null; permission: 'editor' | 'visualizador' }[],
   tiene_turno_dgaf: false,
   folio_turno_dgaf: '',
   fecha_turno_dgaf: '',
 });
 
 const submit = () => {
-  form.post('/oficios/entrada');
+    form.transform(data => ({
+      ...data,
+      area_ids: data.area_ids.filter(id => id !== null),
+  })).post('/oficios/entrada');
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -77,7 +80,7 @@ const breadcrumbs: BreadcrumbItem[] = [
         <SuccessPanel 
             v-if="submissionSuccessful"
             title="¡Éxito!"
-            :message="flash.success ?? ''"
+            :message="flash?.success ?? 'El oficio ha sido registrado correctamente.'"
         >
             <Link
                 href="/oficios/entrada/registrar"
@@ -94,10 +97,8 @@ const breadcrumbs: BreadcrumbItem[] = [
         </SuccessPanel>
 
         <form v-else @submit.prevent="submit" class="space-y-6">
-          <OficioRespuestaSection :form="form" :searchable-oficios="props.searchableOficios" />
           <FormErrors :form="form" />
           <OficioDataSection :form="form" :all-users="props.allUsers" />
-          
           <AsuntoDescripcionSection :form="form" />
           <TurnoDgafSection :form="form" />
           <DocumentosSection :form="form" />

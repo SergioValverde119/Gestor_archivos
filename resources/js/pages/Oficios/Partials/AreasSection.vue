@@ -1,6 +1,7 @@
 <script setup lang="ts">
-// --- Definiciones de Tipos ---
-interface Area { id: number; nombre: string; }
+import { type Area } from '@/types';
+
+
 
 const props = defineProps<{
     form: any; // El objeto useForm de Inertia

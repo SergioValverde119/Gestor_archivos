@@ -1,26 +1,8 @@
 <script setup lang="ts">
 import { Users, Building } from 'lucide-vue-next';
+import { type Oficio } from '@/types';
 
-// --- Definición de Tipos ---
-interface Area {
-    id: number;
-    nombre: string;
-}
-interface User {
-    id: number;
-    name: string;
-}
-interface Permission {
-    user: User;
-    permission_level: 'editor' | 'visualizador';
-}
-interface Expediente {
-    areas: Area[];
-}
-interface Oficio {
-  expediente: Expediente | null;
-  permissions: Permission[];
-}
+
 
 const props = defineProps<{
   oficio: Oficio;

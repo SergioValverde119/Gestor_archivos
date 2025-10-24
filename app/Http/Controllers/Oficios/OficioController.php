@@ -24,6 +24,24 @@ class OficioController extends Controller
     {
         $user = Auth::user();
         
+        // --- CORRECCIÓN 1: Se almacenan los filtros validados en una variable ---
+        $filters = $request->validate([
+            'sort' => 'nullable|string|in:folio,asunto,status,prioridad,fechaRegistro,fechaRecepcion,fechaLimite',
+            'direction' => 'nullable|string|in:asc,desc',
+            'tiene_turno_dgaf' => 'nullable|in:true,false',
+            'tipo' => ['nullable', Rule::in(['entrada', 'salida'])],
+            'per_page' => 'nullable|integer|in:8,15,25,50',
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
+            'recepcion_from' => 'nullable|date',
+            'recepcion_to' => 'nullable|date|after_or_equal:recepcion_from',
+            'limite_from' => 'nullable|date',
+            'limite_to' => 'nullable|date|after_or_equal:limite_from',
+            'area_ids' => 'nullable|array',
+            'area_ids.*' => 'integer|exists:areas,id',
+            'search' => 'nullable|string|max:255',
+        ]);
+
         $query = Oficio::query()->with([
             'expediente.areas', 
             'documentos',
@@ -32,39 +50,31 @@ class OficioController extends Controller
             'respuestaA:id,folio_interno'
         ]);
 
-        // La lógica de filtrado por permisos se mantiene igual
+        // La lógica de filtrado por permisos se mantiene aquí
         $query->where(function ($q) use ($user) {
             if (in_array($user->role, ['admin', 'director'])) {
                 // Sin filtro, acceso total
             } elseif ($user->role === 'jefe_area' && $user->area_id) {
-                $q->whereHas('expediente', function ($expedienteQuery) use ($user) {
-                    $expedienteQuery->whereHas('areas', function ($areaQuery) use ($user) {
-                        $areaQuery->where('areas.id', $user->area_id);
-                    });
-                });
+                $q->whereHas('expediente.areas', fn($aq) => $aq->where('areas.id', $user->area_id));
             } else {
                 $q->where(function ($permissionQuery) use ($user) {
-                    $permissionQuery->whereHas('permissions', function ($pQuery) use ($user) {
-                        $pQuery->where('user_id', $user->id)->where('permissible_type', Oficio::class);
-                    })
-                    ->orWhereHas('expediente', function ($expedienteQuery) use ($user) {
-                        $expedienteQuery->whereHas('permissions', function ($pQuery) use ($user) {
-                            $pQuery->where('user_id', $user->id)->where('permissible_type', Expediente::class);
-                        });
-                    });
+                    $permissionQuery->whereHas('permissions', fn($pq) => $pq->where('user_id', $user->id)->where('permissible_type', Oficio::class))
+                        ->orWhereHas('expediente.permissions', fn($pq) => $pq->where('user_id', $user->id)->where('permissible_type', Expediente::class));
                 });
             }
         });
 
-        // La lógica de búsqueda y filtros se mantiene igual
-        $query->when($request->input('search'), function ($q, $search) { /* ... */ });
-        // ... (resto de filtros y ordenamiento)
-        
-        $oficios = $query->latest()->paginate(10)->withQueryString();
+        // --- CORRECCIÓN 2: Se pasan los $filters validados (no $request->all()) ---
+        $oficios = $query->filter($filters)
+            // --- CORRECCIÓN 3: El orden por defecto solo se aplica si NO se pide uno específico ---
+            ->when(!isset($filters['sort']), fn($q) => $q->latest('created_at'))
+            ->paginate($filters['per_page'] ?? 8)
+            ->withQueryString();
 
         return Inertia::render('Oficios/Index', [
             'oficios' => $oficios,
-            'filters' => $request->only(['search', 'sort', 'direction']),
+            // --- CORRECCIÓN 4: Se devuelven los $filters validados ---
+            'filters' => $filters,
         ]);
     }
 
@@ -75,18 +85,13 @@ class OficioController extends Controller
     {
         $this->authorize('view', $oficio);
 
-        // --- CORRECCIÓN: Se expande la carga de relaciones para la vista de detalles ---
         $oficio->load([
-            // Para el historial del expediente, carga otros oficios con sus datos clave
-            'expediente.oficios' => function ($query) {
-                $query->with(['recibidoPor:id,name', 'documentos'])
-                      ->orderBy('created_at', 'desc');
-            },
-            'expediente.areas', // Para la tarjeta de asignaciones
-            'documentos', // Para la lista de documentos del oficio actual
-            'recibidoPor:id,name', // Para los detalles de entrada/salida
-            'respuestaA:id,folio_interno,asunto', // Para saber a qué oficio responde
-            'permissions.user:id,name' // Para la tarjeta de asignaciones
+            'expediente.areas',
+            'expediente.oficios' => fn($q) => $q->with('documentos')->orderBy('created_at'),
+            'documentos',
+            'recibidoPor:id,name',
+            'respuestaA',
+            'permissions.user:id,name'
         ]);
 
         return Inertia::render('Oficios/Show', [
@@ -100,9 +105,7 @@ class OficioController extends Controller
     public function edit(Oficio $oficio)
     {
         $this->authorize('update', $oficio);
-
         $oficio->load(['expediente']);
-        
         return Inertia::render('Oficios/Edit', [
             'oficio' => $oficio,
         ]);

@@ -22,7 +22,11 @@ abstract class Query
     public function handle(): Builder
     {
         foreach ($this->filters as $name => $value) {
-            if (method_exists($this, $name)) {
+            // --- CORRECCIÓN: ---
+            // Solo llama al método si existe Y si el valor no es nulo.
+            // Esto previene el error "string, null given" en los métodos
+            // que esperan un valor, como 'search'.
+            if (method_exists($this, $name) && !is_null($value)) {
                 $this->$name($value);
             }
         }

@@ -1,25 +1,31 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
 import { ref, computed } from 'vue';
+
+// --- Se importan los tipos desde el archivo central ---
+import { 
+    type BreadcrumbItem, 
+    type Area, 
+    type SimpleUser, 
+    type SearchableOficio,
+    type User
+} from '@/types';
 
 //Componentes de oficio
 import AsignacionesSection from './Partials/AsignacionesSection.vue';
 import AreasSection from './Partials/AreasSection.vue';
 import SuccessPanel from './Partials/SuccessPanel.vue';
 import DocumentosSection from './Partials/DocumentosSection.vue'
+import AsuntoDescripcionSection from './Partials/AsuntoDescripcionSection.vue'; 
 import OficioRespuestaSection from './Partials/OficioRespuestaSection.vue';
-import FormErrors from './Partials/FormErrors.vue';
+import FormErrors from './Partials/FormErrors.vue'; // <-- Ruta corregida
 
-// --- Definiciones de Tipos ---
-interface Area { id: number; nombre: string; }
-interface User { id: number; name: string; }
-interface SearchableOficio { id: number; folio_interno: string | null; folio_externo: string | null; folio_salida: string | null; asunto: string; }
+// --- (Las definiciones locales de tipos se han eliminado) ---
 
 const props = defineProps<{
   areas: Area[];
-  users: User[]; // Operativos
+  users: SimpleUser[]; // Operativos
   searchableOficios: SearchableOficio[];
   nextFolioSalida: string;
   flash?: { success?: string; }
@@ -27,6 +33,7 @@ const props = defineProps<{
 
 const flash = computed(() => usePage().props.flash as { success?: string });
 const submissionSuccessful = computed(() => !!flash.value?.success);
+
 
 // --- El "Cerebro" del Formulario ---
 const form = useForm({
@@ -36,8 +43,8 @@ const form = useForm({
   descripcion: '',
   prioridad: 'Ordinario' as 'Ordinario' | 'Urgente' | 'Extremadamente Urgente',
   status: 'Enviado',
-  documento_principal: null as File | null,
-  anexos: [] as File[],
+  documento_principal: null as File | null, // <-- Se añade el campo
+  anexos: [] as File[], // <-- Se añade el campo
   oficio_respuesta_id: null as number | null,
   area_ids: [null] as (number | null)[],
   asignaciones: [] as { user_id: number | null; permission: 'editor' | 'visualizador' }[],
@@ -99,18 +106,9 @@ const breadcrumbs: BreadcrumbItem[] = [
                       <input type="text" id="destinatario" v-model="form.destinatario" class="mt-1 block w-full rounded-md shadow-sm" />
                       <div v-if="form.errors.destinatario" class="text-red-500 text-sm mt-1">{{ form.errors.destinatario }}</div>
                   </div>
-
-                  <div class="md:col-span-2">
-                    <label for="asunto" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Asunto (Opcional)</label>
-                    <input type="text" id="asunto" v-model="form.asunto" class="mt-1 block w-full rounded-md shadow-sm" />
-                    <div v-if="form.errors.asunto" class="text-red-500 text-sm mt-1">{{ form.errors.asunto }}</div>
-                  </div>
-
-                  <div class="md:col-span-2">
-                      <label for="descripcion" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción (Opcional)</label>
-                      <textarea id="descripcion" v-model="form.descripcion" rows="3" class="mt-1 block w-full rounded-md shadow-sm"></textarea>
-                  </div>
                   
+                  <AsuntoDescripcionSection :form="form" />
+
                   <div>
                       <label for="prioridad" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Prioridad</label>
                       <select id="prioridad" v-model="form.prioridad" class="mt-1 block w-full rounded-md shadow-sm">

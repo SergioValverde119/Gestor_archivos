@@ -2,27 +2,15 @@
 import { ArrowUp, ArrowDown, ChevronDown, Filter } from 'lucide-vue-next';
 import { ref, onMounted, onUnmounted } from 'vue';
 
-// --- Se define la "forma" que tendrá el objeto de filtros ---
-interface Area { id: number; nombre: string; }
-interface Filters {
-  search: string;
-  sort?: string;
-  direction?: 'asc' | 'desc';
-  tiene_turno_dgaf: 'true' | 'false' | null;
-  tipo?: 'entrada' | 'salida' | null;
-  date_from?: string | null;
-  date_to?: string | null;
-  recepcion_from?: string | null;
-  recepcion_to?: string | null;
-  limite_from?: string | null;
-  limite_to?: string | null;
-  area_ids?: number[];
-}
+// --- CORRECCIÓN: Se importan los tipos desde el archivo central ---
+import { type OficioFilters, type Area } from '@/types';
+
+// --- (Las definiciones locales de 'Area' y 'Filters' se han eliminado) ---
 
 const props = defineProps<{
   visibleHeaders: { key: string; label: string; }[];
-  filters: Filters;
-  areas: Area[];
+  filters: OficioFilters; // <-- Se usa el tipo importado
+  areas: Area[];          // <-- Se usa el tipo importado
 }>();
 
 const emit = defineEmits(['sort', 'update:filters']);
@@ -31,7 +19,7 @@ const setSort = (column: string, direction: 'asc' | 'desc') => {
     emit('sort', { column, direction });
 };
 
-const updateFilter = (key: keyof Filters, value: any) => {
+const updateFilter = (key: keyof OficioFilters, value: any) => {
     const newFilters = { ...props.filters, [key]: value };
     emit('update:filters', newFilters);
 }
@@ -65,6 +53,16 @@ onMounted(() => {
     }, true);
 });
 
+onUnmounted(() => {
+    document.removeEventListener('click', (event: MouseEvent) => {
+        if (headerRef.value && !headerRef.value.contains(event.target as Node)) {
+            headerRef.value.querySelectorAll('details[open]').forEach(detail => {
+                detail.removeAttribute('open');
+            });
+        }
+    }, true);
+});
+
 </script>
 
 <template>
@@ -75,7 +73,7 @@ onMounted(() => {
                 :key="header.key" 
                 class="px-6 py-3 text-left text-xs font-medium uppercase"
             >
-                <!-- Menú para columnas ordenables (sin filtro de fecha) -->
+                <!-- Menú para columnas ordenables -->
                 <details v-if="['folio', 'asunto', 'status', 'prioridad'].includes(header.key)" class="relative group">
                     <summary class="flex items-center cursor-pointer list-none -ml-2 p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600">
                         {{ header.label }}
@@ -88,26 +86,6 @@ onMounted(() => {
                     <div class="absolute z-10 mt-2 w-48 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-md shadow-lg hidden group-open:block">
                         <a @click.prevent="setSort(header.key, 'asc')" class="block px-4 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">Ordenar A-Z / Asc</a>
                         <a @click.prevent="setSort(header.key, 'desc')" class="block px-4 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">Ordenar Z-A / Desc</a>
-                    </div>
-                </details>
-
-                                <!-- NUEVO: Menú para el filtro de Áreas -->
-                <details v-else-if="header.key === 'areas'" class="relative group">
-                    <summary class="flex items-center cursor-pointer list-none -ml-2 p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600">
-                        {{ header.label }}
-                        <Filter v-if="filters.area_ids && filters.area_ids.length > 0" class="w-3 h-3 ml-1 text-blue-500"/>
-                        <ChevronDown class="w-4 h-4 ml-auto opacity-60 group-open:rotate-180 transition-transform"/>
-                    </summary>
-                    <div class="absolute z-10 mt-2 w-56 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-md shadow-lg hidden group-open:block p-3 space-y-2 max-h-60 overflow-y-auto">
-                        <label v-for="area in areas" :key="area.id" class="flex items-center text-sm cursor-pointer">
-                            <input 
-                                type="checkbox"
-                                :value="area.id"
-                                v-model="filters.area_ids"
-                                class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span class="ml-2">{{ area.nombre }}</span>
-                        </label>
                     </div>
                 </details>
                 
@@ -136,7 +114,7 @@ onMounted(() => {
 
                 <!-- Menú para el filtro de Fecha de Recepción -->
                 <details v-else-if="header.key === 'fechaRecepcion'" class="relative group">
-                    <summary class="flex items-center cursor-pointer list-none -ml-2 p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600">
+                     <summary class="flex items-center cursor-pointer list-none -ml-2 p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600">
                         {{ header.label }}
                         <Filter v-if="filters.recepcion_from || filters.recepcion_to" class="w-3 h-3 ml-1 text-blue-500"/>
                         <ChevronDown class="w-4 h-4 ml-auto opacity-60 group-open:rotate-180 transition-transform"/>
@@ -205,6 +183,35 @@ onMounted(() => {
                         <label class="block px-2 py-1 text-sm cursor-pointer hover:bg-gray-100 rounded-md"><input type="radio" :checked="!filters.tipo" @change="updateFilter('tipo', null)" class="mr-2"/> Todos</label>
                         <label class="block px-2 py-1 text-sm cursor-pointer hover:bg-gray-100 rounded-md"><input type="radio" :checked="filters.tipo === 'entrada'" @change="updateFilter('tipo', 'entrada')" class="mr-2"/> Solo Entrada</label>
                         <label class="block px-2 py-1 text-sm cursor-pointer hover:bg-gray-100 rounded-md"><input type="radio" :checked="filters.tipo === 'salida'" @change="updateFilter('tipo', 'salida')" class="mr-2"/> Solo Salida</label>
+                    </div>
+                </details>
+
+                <!-- Menú para el filtro de Áreas -->
+                <details v-else-if="header.key === 'areas'" class="relative group">
+                    <summary class="flex items-center cursor-pointer list-none -ml-2 p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600">
+                        {{ header.label }}
+                        <Filter v-if="filters.area_ids && filters.area_ids.length > 0" class="w-3 h-3 ml-1 text-blue-500"/>
+                        <ChevronDown class="w-4 h-4 ml-auto opacity-60 group-open:rotate-180 transition-transform"/>
+                    </summary>
+                    <div class="absolute z-10 mt-2 w-56 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-md shadow-lg hidden group-open:block p-3 space-y-2 max-h-60 overflow-y-auto">
+                        <label v-for="area in areas" :key="area.id" class="flex items-center text-sm cursor-pointer">
+                            <input 
+                                type="checkbox"
+                                :value="area.id"
+                                :checked="filters.area_ids?.includes(area.id)"
+                                @change="() => {
+                                    const newAreaIds = [...(filters.area_ids || [])];
+                                    if (newAreaIds.includes(area.id)) {
+                                        updateFilter('area_ids', newAreaIds.filter(id => id !== area.id));
+                                    } else {
+                                        newAreaIds.push(area.id);
+                                        updateFilter('area_ids', newAreaIds);
+                                    }
+                                }"
+                                class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span class="ml-2">{{ area.nombre }}</span>
+                        </label>
                     </div>
                 </details>
                 

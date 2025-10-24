@@ -2,13 +2,14 @@
 import { usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 
-// --- Definiciones de Tipos ---
-interface User { id: number; name: string; }
+// --- CORRECCIÓN: Se importan los tipos desde el archivo central ---
+import { type User, type SimpleUser } from '@/types';
 
-// Este componente recibe el objeto 'form' completo y la lista de todos los usuarios
+// --- (La definición local de User se ha eliminado) ---
+
 const props = defineProps<{
     form: any; // El objeto useForm de Inertia
-    allUsers: User[];
+    allUsers: SimpleUser[]; // <-- Se usa el tipo SimpleUser
 }>();
 
 // --- LÓGICA PARA LA FECHA LÍMITE OPCIONAL ---
@@ -29,7 +30,7 @@ watch(tieneFechaLimite, (newValue) => {
 });
 // --- FIN DE LA LÓGICA ---
 
-const authUser = computed(() => usePage().props.auth.user as User);
+const authUser = computed(() => usePage().props.auth.user as User); // <-- Se usa el tipo User completo
 
 // Lógica para ordenar la lista de usuarios y poner al actual primero
 const sortedAllUsers = computed(() => {
@@ -47,7 +48,7 @@ const sortedAllUsers = computed(() => {
 
             <div>
                 <label for="folio_externo" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Folio Externo</label>
-                <input type="text" id="folio_externo" v-model="form.folio_externo" required class="mt-1 block w-full rounded-md shadow-sm" />
+                <input type="text" id="folio_externo" v-model="form.folio_externo" required class="mt-1 block w-full rounded-md shadow-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500" />
                 <div v-if="form.errors.folio_externo" class="text-red-500 text-sm mt-1">{{ form.errors.folio_externo }}</div>
             </div>
 
@@ -56,12 +57,15 @@ const sortedAllUsers = computed(() => {
                 <input type="text" id="folio_interno" v-model="form.folio_interno" disabled class="mt-1 block w-full rounded-md shadow-sm bg-gray-100 dark:bg-gray-700" />
             </div>
 
-
-
+            <div class="md:col-span-2">
+                <label for="remitente" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Remitente</label>
+                <input type="text" id="remitente" v-model="form.remitente" required class="mt-1 block w-full rounded-md shadow-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500" />
+                <div v-if="form.errors.remitente" class="text-red-500 text-sm mt-1">{{ form.errors.remitente }}</div>
+            </div>
 
             <div>
                 <label for="fecha_recepcion" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Fecha de Recepción</label>
-                <input type="date" id="fecha_recepcion" v-model="form.fecha_recepcion" required class="mt-1 block w-full rounded-md shadow-sm" />
+                <input type="date" id="fecha_recepcion" v-model="form.fecha_recepcion" required class="mt-1 block w-full rounded-md shadow-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500" />
                 <div v-if="form.errors.fecha_recepcion" class="text-red-500 text-sm mt-1">{{ form.errors.fecha_recepcion }}</div>
             </div>
 
@@ -82,7 +86,7 @@ const sortedAllUsers = computed(() => {
 
             <div>
                 <label for="prioridad" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Prioridad</label>
-                <select id="prioridad" v-model="form.prioridad" class="mt-1 block w-full rounded-md shadow-sm">
+                <select id="prioridad" v-model="form.prioridad" class="mt-1 block w-full rounded-md shadow-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500">
                     <option>Ordinario</option>
                     <option>Urgente</option>
                     <option>Extremadamente Urgente</option>
@@ -91,19 +95,11 @@ const sortedAllUsers = computed(() => {
 
             <div>
                 <label for="recibido_por_user_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Recibido Por</label>
-                <select id="recibido_por_user_id" v-model="form.recibido_por_user_id" required class="mt-1 block w-full rounded-md shadow-sm">
+                <select id="recibido_por_user_id" v-model="form.recibido_por_user_id" required class="mt-1 block w-full rounded-md shadow-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500">
                     <option v-for="user in sortedAllUsers" :key="user.id" :value="user.id">{{ user.name }}</option>
                 </select>
                 <div v-if="form.errors.recibido_por_user_id" class="text-red-500 text-sm mt-1">{{ form.errors.recibido_por_user_id }}</div>
             </div>
-
-                        <div class="md:col-span-2">
-                <label for="remitente" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Remitente</label>
-                <input type="text" id="remitente" v-model="form.remitente" class="mt-1 block w-full rounded-md shadow-sm" />
-                <div v-if="form.errors.remitente" class="text-red-500 text-sm mt-1">{{ form.errors.remitente }}</div>
-            </div>
-
-            
         </div>
     </div>
 </template>

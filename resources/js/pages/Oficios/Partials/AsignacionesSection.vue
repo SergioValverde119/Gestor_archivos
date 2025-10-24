@@ -1,10 +1,10 @@
 <script setup lang="ts">
-// --- Definiciones de Tipos ---
-interface User { id: number; name: string; }
+import { type SimpleUser } from '@/types';
+
 
 const props = defineProps<{
     form: any; // El objeto useForm de Inertia
-    users: User[]; // Lista de operativos
+    users: SimpleUser[]; // Se usa el tipo importado
 }>();
 
 // Lógica para añadir y quitar asignaciones
