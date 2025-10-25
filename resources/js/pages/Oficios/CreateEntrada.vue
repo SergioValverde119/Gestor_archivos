@@ -8,7 +8,8 @@ import {
     type BreadcrumbItem, 
     type Area, 
     type SimpleUser,
-    type User 
+    type User,
+    type SearchableOficio 
 } from '@/types';
 
 // Importa los componentes
@@ -20,6 +21,7 @@ import AsignacionesSection from './Partials/AsignacionesSection.vue';
 import SuccessPanel from './Partials/SuccessPanel.vue';
 import FormErrors from './Partials/FormErrors.vue';
 import AsuntoDescripcionSection from './Partials/AsuntoDescripcionSection.vue';
+import OficioRespuestaSection from './Partials/OficioRespuestaSection.vue'; 
 
 // --- (Las definiciones locales de tipos se han eliminado) ---
 
@@ -27,13 +29,14 @@ const props = defineProps<{
   areas: Area[];
   users: SimpleUser[];
   allUsers: SimpleUser[];
+  searchableOficios: SearchableOficio[]; 
   nextFolioInterno: string;
   flash?: { success?: string; }
 }>();
 
 const flash = computed(() => usePage().props.flash as { success?: string });
 const submissionSuccessful = computed(() => !!flash.value?.success);
-const authUser = computed(() => usePage().props.auth.user as User);
+const authUser = usePage().props.auth.user as User;
 
 
 const form = useForm({
@@ -48,7 +51,8 @@ const form = useForm({
   status: 'Pendiente',
   documento_principal: null as File | null,
   anexos: [] as File[],
-  recibido_por_user_id: authUser.value ? authUser.value.id : null,
+  recibido_por_user_id: authUser ? authUser.id : null,
+  oficio_respuesta_id: null as number | null, 
   area_ids: [null] as (number|null)[],
   asignaciones: [] as { user_id: number | null; permission: 'editor' | 'visualizador' }[],
   tiene_turno_dgaf: false,
@@ -92,13 +96,14 @@ const breadcrumbs: BreadcrumbItem[] = [
                 href="/oficios"
                 class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
             >
-                Volver a la Lista
+                Ir a lista de Oficios
             </Link>
         </SuccessPanel>
 
         <form v-else @submit.prevent="submit" class="space-y-6">
           <FormErrors :form="form" />
           <OficioDataSection :form="form" :all-users="props.allUsers" />
+          <OficioRespuestaSection :form="form" :searchable-oficios="props.searchableOficios" class="md:col-span-1"/>
           <AsuntoDescripcionSection :form="form" />
           <TurnoDgafSection :form="form" />
           <DocumentosSection :form="form" />

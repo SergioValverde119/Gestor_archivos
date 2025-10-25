@@ -76,13 +76,19 @@ const breadcrumbs: BreadcrumbItem[] = [
         <SuccessPanel 
             v-if="submissionSuccessful"
             title="¡Éxito!"
-            :message="flash?.success ?? 'El oficio ha sido generado correctamente.'"
+            :message="flash?.success ?? 'El oficio ha sido registrado correctamente.'"
         >
             <Link
-                href="/oficios/salida/crear"
+                href="/oficios/entrada/registrar"
                 class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
             >
-                Generar Nuevo Oficio de Salida
+                Registrar Nuevo Oficio
+            </Link>
+            <Link
+                href="/oficios"
+                class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+            >
+                Ir a lista de Oficios
             </Link>
         </SuccessPanel>
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Oficios;
 
 use App\Http\Controllers\Controller;
 use App\Models\Oficio;
+use App\Models\Area;
 use App\Models\Expediente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -75,6 +76,7 @@ class OficioController extends Controller
             'oficios' => $oficios,
             // --- CORRECCIÓN 4: Se devuelven los $filters validados ---
             'filters' => $filters,
+            'areas' => Area::all(['id', 'nombre']),
         ]);
     }
 

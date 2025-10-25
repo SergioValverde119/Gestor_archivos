@@ -59,7 +59,7 @@ const sortedAllUsers = computed(() => {
 
             <div class="md:col-span-2">
                 <label for="remitente" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Remitente</label>
-                <input type="text" id="remitente" v-model="form.remitente" required class="mt-1 block w-full rounded-md shadow-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500" />
+                <input type="text" id="remitente" v-model="form.remitente" class="mt-1 block w-full rounded-md shadow-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500" />
                 <div v-if="form.errors.remitente" class="text-red-500 text-sm mt-1">{{ form.errors.remitente }}</div>
             </div>
 

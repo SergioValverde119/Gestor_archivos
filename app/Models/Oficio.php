@@ -53,6 +53,7 @@ class Oficio extends Model
     {
         return $this->belongsTo(User::class, 'recibido_por_user_id');
     }
+    
 
     /**
      * Get the oficio that this oficio is a response to.
