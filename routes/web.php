@@ -8,11 +8,8 @@ Route::get('/', function () {
     return Inertia::render('Welcome');
 })->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('dashboard', function () {
-        return Inertia::render('Dashboard');
-    })->name('dashboard');
-});
+
+
 
 
 
@@ -24,3 +21,4 @@ require __DIR__.'/oficios.php';
 require __DIR__.'/areas.php';
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
+require __DIR__.'/dashboard.php';

@@ -6,6 +6,8 @@ import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
 import { LayoutDashboard, FilePlus2, House, Search, Building2, FolderArchive, FileUp, Users } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
+import {index} from '@/routes/areas';
+import * as oficios from '@/routes/oficios';
 
 // Obtén la función para alternar y el estado de la barra lateral
 const { toggleSidebar, state } = useSidebar();
@@ -28,7 +30,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Buscar Oficios',
-        href: '/oficios',
+        href: oficios.index(),
         icon: Search,
     },
     {
@@ -43,7 +45,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Áreas',
-        href: '/areas',
+        href: index(),
         icon: Building2,
     },
     {

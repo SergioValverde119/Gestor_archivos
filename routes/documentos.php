@@ -13,16 +13,13 @@ use App\Http\Controllers\Documentos\DocumentoController;
 |
 */
 
-Route::middleware(['auth', 'verified'])
-    ->prefix('documentos')
-    ->name('documentos.')
-    ->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
         // Ruta para la descarga segura de archivos
-        Route::get('/{documento}/download', [DocumentoController::class, 'download'])->name('download');
+        Route::get('/{documento}/download', [DocumentoController::class, 'download'])->name('documentos.download');
 
         // Ruta para subir nuevos anexos a un oficio existente
-        Route::post('/{oficio}/store', [DocumentoController::class, 'store'])->name('store');
+        Route::post('/{oficio}/store', [DocumentoController::class, 'store'])->name('documentos.store');
 
         // Ruta para eliminar un documento específico (principal o anexo)
-        Route::delete('/{documento}', [DocumentoController::class, 'destroy'])->name('destroy');
+        Route::delete('/{documento}', [DocumentoController::class, 'destroy'])->name('documentos.destroy');
     });

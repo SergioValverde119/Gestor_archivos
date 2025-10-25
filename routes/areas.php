@@ -7,7 +7,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Muestra la lista de todas las áreas
     Route::get('/areas', [AreaController::class, 'index'])->name('areas.index');
 
-    // Muestra el formulario para crear una nueva área
+    
     Route::get('/areas/create', [AreaController::class, 'create'])->name('areas.create');
 
     // Almacena una nueva área en la base de datos
