@@ -21,7 +21,7 @@ const handleAnexosChange = (event: Event) => {
                 <div v-if="form.errors.documento_principal" class="text-red-500 text-sm mt-1">{{ form.errors.documento_principal }}</div>
             </div>
             <div>
-                <label for="anexos" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Anexos (Opcional, puede seleccionar varios)</label>
+                <label for="anexos" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Anexos (Opcional, puede seleccionar varios presionando shilft y seleccionando)</label>
                 <input type="file" id="anexos" @change="handleAnexosChange" multiple class="mt-1 block w-full text-sm" />
                 <div v-if="form.errors.anexos" class="text-red-500 text-sm mt-1">{{ form.errors.anexos }}</div>
             </div>

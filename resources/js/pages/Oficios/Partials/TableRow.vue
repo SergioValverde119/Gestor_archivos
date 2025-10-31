@@ -60,13 +60,13 @@ const anexoCount = computed(() => {
             <template v-else-if="col.key === 'folioInterno'">{{ oficio.folio_interno || 'N/A' }}</template>
             <template v-else-if="col.key === 'expediente'"><Link v-if="oficio.expediente" :href="`/expedientes/${oficio.expediente.id}`" class="text-blue-600 hover:underline">{{ oficio.expediente.numero_expediente }}</Link><span v-else>N/A</span></template>
             <template v-else-if="col.key === 'remitente_destinatario'">{{ oficio.remitente || oficio.destinatario || 'N/A' }}</template>
-            <template v-else-if="col.key === 'descripcion'">{{ oficio.descripcion?.substring(0, 30) }}...</template>
+            <template v-else-if="col.key === 'descripcion'">{{ oficio.descripcion?(oficio.descripcion.substring(0, 30)+'...'):'Sin descripción'}}</template>
             <template v-else-if="col.key === 'fechaRecepcion'">{{ formatDate(oficio.fecha_recepcion) }}</template>
             <template v-else-if="col.key === 'fechaLimite'">{{ formatDate(oficio.fecha_limite) }}</template>
-            <template v-else-if="col.key === 'registradoPor'">{{ oficio.recibidoPor?.name || 'Sistema' }}</template>
-            <template v-else-if="col.key === 'areas'">{{ oficio.expediente?.areas.map(a => a.nombre).join(', ') || 'N/A' }}</template>
-            <template v-else-if="col.key === 'asignadoA'">{{ oficio.permissions.map(p => p.user.name).join(', ') || 'N/A' }}</template>
-            <template v-else-if="col.key === 'respondeA'"><Link v-if="oficio.respuestaA" :href="`/oficios/${oficio.respuestaA.id}`" class="text-blue-600 hover:underline">{{ oficio.respuestaA.folio_interno }}</Link><span v-else>-</span></template>
+            <template v-else-if="col.key === 'registrado_por'">{{ oficio.recibido_por?.name|| 'Nds/A' }}</template> 
+            <template v-else-if="col.key === 'areas'">{{ oficio.expediente?.areas.map(a => a.nombre).join(' | ') || 'N/A' }}</template> 
+            <template v-else-if="col.key === 'asignadoA'">{{ oficio.permissions.map(p => p.user.name).join(' | ') || 'N/A' }}</template>
+            <template v-else-if="col.key === 'responde_a'"><Link v-if="oficio.respuesta_a" :href="`/oficios/${oficio.respuesta_a.id}`" class="text-blue-600 hover:underline">{{ oficio.tipo + ' ' +(oficio.respuesta_a.folio_externo||oficio.respuesta_a.folio_salida)}}</Link><span v-else>N/A</span></template>
             <template v-else-if="col.key === 'turnoDGAF'"><span v-if="oficio.tiene_turno_dgaf" class="text-green-500 font-bold">Sí</span><span v-else>No</span></template>
             <template v-else-if="col.key === 'anexos'">{{ anexoCount }}</template>
         </td>

@@ -20,10 +20,25 @@ class Oficio extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'expediente_id', 'tipo', 'folio_externo', 'folio_salida', 'folio_interno',
-        'remitente', 'destinatario', 'asunto', 'descripcion', 'fecha_recepcion',
-        'fecha_limite', 'prioridad', 'recibido_por_user_id', 'oficio_respuesta_id',
-        'status', 'resolucion', 'tiene_turno_dgaf', 'folio_turno_dgaf', 'fecha_turno_dgaf',
+        'expediente_id',
+        'tipo',
+        'folio_externo',
+        'folio_salida',
+        'folio_interno',
+        'remitente',
+        'destinatario',
+        'asunto',
+        'descripcion',
+        'fecha_recepcion',
+        'fecha_limite',
+        'prioridad',
+        'recibido_por_user_id',
+        'oficio_respuesta_id',
+        'status',
+        'resolucion',
+        'tiene_turno_dgaf',
+        'folio_turno_dgaf',
+        'fecha_turno_dgaf',
     ];
 
     /**

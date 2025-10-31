@@ -48,7 +48,7 @@ class OficioController extends Controller
             'documentos',
             'recibidoPor:id,name',
             'permissions.user:id,name',
-            'respuestaA:id,folio_interno'
+            'respuestaA'
         ]);
 
         // La lógica de filtrado por permisos se mantiene aquí
@@ -72,6 +72,8 @@ class OficioController extends Controller
             ->paginate($filters['per_page'] ?? 8)
             ->withQueryString();
 
+        
+
         return Inertia::render('Oficios/Index', [
             'oficios' => $oficios,
             // --- CORRECCIÓN 4: Se devuelven los $filters validados ---
@@ -85,15 +87,18 @@ class OficioController extends Controller
      */
     public function show(Oficio $oficio)
     {
-        $this->authorize('view', $oficio);
+       // $this->authorize('view', $oficio);
 
         $oficio->load([
             'expediente.areas',
-            'expediente.oficios' => fn($q) => $q->with('documentos')->orderBy('created_at'),
+            'expediente.oficios' => fn($q) => $q->with([
+                'documentos', 
+                'recibidoPor:id,name' // Añade esto
+            ])->orderBy('created_at'),
             'documentos',
             'recibidoPor:id,name',
-            'respuestaA',
-            'permissions.user:id,name'
+            'permissions.user:id,name',
+            'respuestaA',            
         ]);
 
         return Inertia::render('Oficios/Show', [

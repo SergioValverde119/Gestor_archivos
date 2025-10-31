@@ -55,10 +55,10 @@ const allColumns = ref([
     { key: 'descripcion', label: 'Descripción' },
     { key: 'fechaRecepcion', label: 'Fecha Recep.' },
     { key: 'fechaLimite', label: 'Fecha Límite' },
-    { key: 'registradoPor', label: 'Registrado Por' },
+    { key: 'registrado_por', label: 'Registrado Por' },
     { key: 'areas', label: 'Áreas' },
     { key: 'asignadoA', label: 'Asignado A' },
-    { key: 'respondeA', label: 'Responde A' },
+    { key: 'responde_a', label: 'Responde A' },
     { key: 'anexos', label: 'Anexos' },
 ]);
 const visibleColumns = ref<string[]>([]);

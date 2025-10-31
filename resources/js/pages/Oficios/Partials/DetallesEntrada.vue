@@ -30,7 +30,7 @@ const formatDate = (dateString: string | null) => {
             </div>
             <div>
                 <dt class="font-medium text-gray-500 dark:text-gray-400">Registrado Por:</dt>
-                <dd class="text-gray-900 dark:text-gray-100 mt-1">{{ oficio.recibidoPor?.name || 'N/A' }}</dd>
+                <dd class="text-gray-900 dark:text-gray-100 mt-1">{{ oficio.recibido_por?.name || 'N/A' }}</dd>
             </div>
 
             <!-- Sección del Turno DGAF (solo si existe) -->

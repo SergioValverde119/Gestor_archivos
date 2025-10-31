@@ -25,6 +25,7 @@ const formatDate = (dateString: string | null) => {
         <div v-if="expediente && expediente.oficios.length > 0">
             <div class="border-l-2 border-gray-200 dark:border-gray-700 ml-2">
                 <div v-for="oficio in expediente.oficios" :key="oficio.id" class="relative mb-6">
+                    <!--<pre class="bg-red-200 text-black p-2 rounded">{{ oficio }}</pre>-->
                     <div class="absolute -left-[11px] h-5 w-5 rounded-full" 
                          :class="oficio.tipo === 'entrada' ? 'bg-blue-500' : 'bg-green-500'">
                     </div>
@@ -41,7 +42,7 @@ const formatDate = (dateString: string | null) => {
                             {{ oficio.asunto }}
                         </p>
                         <div class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between">
-                           <span>Folio: {{ oficio.folio_externo || oficio.folio_salida }} | Por: {{ oficio.recibidoPor?.name }}</span>
+                          <span> Folio: {{ oficio.folio_externo || oficio.folio_salida }} <span v-if="oficio.recibido_por"> | Recibido por: {{ oficio.recibido_por.name }}</span></span>
                            <Link v-if="oficio.id !== oficioActualId" :href="`/oficios/${oficio.id}`" class="text-blue-600 hover:underline flex items-center">
                                 Ver <FileText class="w-3 h-3 ml-1" />
                            </Link>

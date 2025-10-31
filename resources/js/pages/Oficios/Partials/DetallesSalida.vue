@@ -28,17 +28,17 @@ const formatDate = (dateString: string | null) => {
             </div>
             <div class="md:col-span-1">
                 <dt class="font-medium text-gray-500 dark:text-gray-400">Generado Por:</dt>
-                <dd class="text-gray-900 dark:text-gray-100 mt-1">{{ oficio.recibidoPor?.name || 'Sistema' }}</dd>
+                <dd class="text-gray-900 dark:text-gray-100 mt-1">{{ oficio.recibido_por?.name || 'Sistema' }}</dd>
             </div>
             <div class="md:col-span-1">
                 <dt class="font-medium text-gray-500 dark:text-gray-400">Fecha Límite de Respuesta:</dt>
                 <dd class="text-gray-900 dark:text-gray-100 mt-1">{{ formatDate(oficio.fecha_limite) }}</dd>
             </div>
-            <div v-if="oficio.respuestaA" class="md:col-span-1">
+            <div v-if="oficio.respuesta_a" class="md:col-span-1">
                 <dt class="font-medium text-gray-500 dark:text-gray-400">Responde al Oficio:</dt>
                 <dd class="text-gray-900 dark:text-gray-100 mt-1">
-                    <Link :href="`/oficios/${oficio.respuestaA.id}`" class="text-blue-600 hover:underline">
-                        Folio Interno {{ oficio.respuestaA.folio_interno }}
+                    <Link :href="`/oficios/${oficio.respuesta_a.id}`" class="text-blue-600 hover:underline">
+                        Folio de {{ oficio.respuesta_a.tipo }} {{ oficio.respuesta_a.folio_interno?oficio.respuesta_a.folio_interno:oficio.respuesta_a.folio_salida }}
                     </Link>
                 </dd>
             </div>

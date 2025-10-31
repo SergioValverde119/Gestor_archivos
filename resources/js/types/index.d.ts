@@ -60,10 +60,17 @@ export interface Permission {
     permission_level: 'editor' | 'visualizador';
 }
 
+export interface receptor { 
+    user: SimpleUser; 
+    
+}
+
 export interface Expediente { 
     id: number; 
+    titulo: string;
     numero_expediente: string; 
     areas: Area[]; 
+    descripcion: string;
 }
 
 export interface Oficio {
@@ -85,11 +92,11 @@ export interface Oficio {
   folio_turno_dgaf: string | null;
   fecha_turno_dgaf: string | null;
   expediente: ExpedienteConOficios | null; // <-- CORRECCIÓN: Debe usar el tipo completo
-  recibidoPor: SimpleUser | null; // <-- Se usa el tipo simple
+  recibido_por: SimpleUser | null; // <-- Se usa el tipo simple
   created_at: string;
   documentos: Documento[];
   permissions: Permission[];
-  respuestaA: { id: number; folio_interno: string; } | null;
+  respuesta_a: Oficio ;
 }
 
 // --- NUEVO: Tipos Específicos de Página ---
@@ -101,7 +108,7 @@ export interface OficioEnHistorial {
   created_at: string;
   folio_externo: string | null;
   folio_salida: string | null;
-  recibidoPor: SimpleUser | null;
+  recibido_por: SimpleUser | null;
 }
 
 // --- NUEVO: Interfaz para el expediente que incluye su historial ---
