@@ -53,5 +53,5 @@ const formatDate = (dateString: string | null) => {
             </div>
         </div>
         <p v-else class="text-sm text-gray-500 dark:text-gray-400">Este expediente no tiene más oficios.</p>
-    </div>
+    </div> 
 </template>

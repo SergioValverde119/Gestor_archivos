@@ -14,7 +14,7 @@ Route::get('/', function () {
 
 
 
-
+require __DIR__.'/expedientes.php';
 require __DIR__.'/documentos.php';
 require __DIR__.'/users.php';
 require __DIR__.'/oficios.php';
