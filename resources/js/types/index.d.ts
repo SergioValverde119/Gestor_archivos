@@ -153,3 +153,8 @@ export interface SearchableOficio {
 }
 
 
+export interface Pagination {
+    url: string | null;
+    label: string;
+    active: boolean;
+}

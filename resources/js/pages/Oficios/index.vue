@@ -4,7 +4,6 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { ref, watch, computed, onMounted } from 'vue';
 import { debounce } from 'lodash';
 import OficioTable from './Partials/OficioTable.vue';
-// Agregamos los iconos de Folder
 import { Search, ChevronDown, RefreshCw, FolderInput, FolderOutput } from 'lucide-vue-next';
 
 import { 
@@ -20,15 +19,15 @@ const props = defineProps<{
   filters: OficioFilters;
 }>();
 
-// --- Estado VISUAL para las pestañas (No afecta lógica real aún) ---
-const currentTab = ref('entrada'); 
+// Estado VISUAL
+const currentTab = ref(props.filters.tipo || 'entrada');
 
 const filters = ref<OficioFilters>({
     search: props.filters.search || '',
     sort: props.filters.sort,
     direction: props.filters.direction,
     tiene_turno_dgaf: props.filters.tiene_turno_dgaf ?? null,
-    tipo: props.filters.tipo ?? null,
+    tipo: props.filters.tipo || 'entrada',
     per_page: props.filters.per_page || 8,
     date_from: props.filters.date_from,
     date_to: props.filters.date_to,
@@ -39,35 +38,88 @@ const filters = ref<OficioFilters>({
     area_ids: props.filters.area_ids || [],
 });
 
+// Todas las columnas disponibles (Llaves del sistema)
 const allColumns = ref([
     { key: 'acciones', label: 'Acciones' },
-    { key: 'tipo', label: 'Tipo' },
-    { key: 'folio', label: 'Folio' },
-    { key: 'asunto', label: 'Asunto' },
-    { key: 'turnoDGAF', label: 'Turno DGAF' },
-    { key: 'status', label: 'Estado' },
-    { key: 'prioridad', label: 'Prioridad' },
-    { key: 'fechaRegistro', label: 'Fecha Reg.' },
+    { key: 'folio', label: 'Folio Externo' }, // Asumo que 'folio' es el externo
     { key: 'folioInterno', label: 'Folio Interno' },
-    { key: 'expediente', label: 'Expediente' },
+    { key: 'turnoDGAF', label: 'Turno DGAF' },
+    { key: 'prioridad', label: 'Prioridad' },
     { key: 'remitente_destinatario', label: 'Remitente / Dest.' },
-    { key: 'descripcion', label: 'Descripción' },
     { key: 'fechaRecepcion', label: 'Fecha Recep.' },
-    { key: 'fechaLimite', label: 'Fecha Límite' },
     { key: 'registrado_por', label: 'Registrado Por' },
-    { key: 'areas', label: 'Áreas' },
     { key: 'asignadoA', label: 'Asignado A' },
+    { key: 'asunto', label: 'Asunto' },
+    { key: 'status', label: 'Estado' },
+    { key: 'fechaRegistro', label: 'Fecha Registro' },
+    { key: 'fechaLimite', label: 'Fecha Límite' },
+    { key: 'areas', label: 'Áreas' },
+    // Extras que existen en tu sistema por si acaso
+    { key: 'tipo', label: 'Tipo' },
+    { key: 'expediente', label: 'Expediente' },
+    { key: 'descripcion', label: 'Descripción' },
     { key: 'responde_a', label: 'Responde A' },
     { key: 'anexos', label: 'Anexos' },
 ]);
+
 const visibleColumns = ref<string[]>([]);
 
+// --- 1. CONFIGURACIÓN DE COLUMNAS PARA ENTRADA ---
+const columnsEntrada = [
+    'acciones',
+    'folio',               // Folio (Externo)
+    'turnoDGAF',
+    'prioridad',
+    'folioInterno',
+    'remitente_destinatario', // Remitente
+    'fechaRecepcion',
+    'registrado_por',
+    'asignadoA',
+    'asunto',
+    'status',              // Estado
+    'fechaRegistro',
+    'fechaLimite',
+    'areas'
+];
+
+// --- 2. CONFIGURACIÓN DE COLUMNAS PARA SALIDA ---
+const columnsSalida = [
+    'acciones',
+    'folio',               // Folio (Salida)
+    'remitente_destinatario', // Remitente (o Destinatario en este caso)
+    'registrado_por',
+    'asignadoA',
+    'asunto',
+    'fechaRegistro',
+    'areas'
+];
+
+// --- CAMBIO DE PESTAÑA ---
+const changeTab = (tab: 'entrada' | 'salida') => {
+    currentTab.value = tab;
+    filters.value.tipo = tab;
+
+    // Asignar las columnas correspondientes
+    if (tab === 'entrada') {
+        visibleColumns.value = columnsEntrada;
+    } else {
+        visibleColumns.value = columnsSalida;
+    }
+
+    updateParams();
+};
+
 onMounted(() => {
+    // Si ya existe una configuración guardada, la respetamos.
+    // Si no, cargamos la configuración por defecto según la pestaña activa.
     const saved = localStorage.getItem('visibleOficioColumns');
+    
+    // Opcional: Si prefieres que SIEMPRE se reinicien las columnas al cambiar de pestaña
+    // (ignorando lo que el usuario movió manualmente antes), comenta la parte del 'saved'.
     if (saved) {
         visibleColumns.value = JSON.parse(saved);
     } else {
-        visibleColumns.value = ['acciones', 'tipo', 'folio', 'asunto', 'turnoDGAF', 'status', 'prioridad', 'fechaRegistro'];
+        visibleColumns.value = filters.value.tipo === 'salida' ? columnsSalida : columnsEntrada;
     }
 });
 
@@ -76,19 +128,14 @@ watch(visibleColumns, (newValue) => {
 }, { deep: true });
 
 const visibleHeaders = computed(() => {
-    const actionsColumn = allColumns.value.find(c => c.key === 'acciones');
-    const otherHeaders = allColumns.value.filter(c => 
-        visibleColumns.value.includes(c.key) && c.key !== 'acciones'
-    );
-
-    if (actionsColumn && visibleColumns.value.includes('acciones')) {
-        return [actionsColumn, ...otherHeaders];
-    }
-    
-    return otherHeaders;
+    // Mapeamos el arreglo 'visibleColumns' (que tiene TU orden específico)
+    // para buscar los detalles (label) en la lista maestra.
+    return visibleColumns.value
+        .map(key => allColumns.value.find(c => c.key === key))
+        .filter(c => c !== undefined); // Filtro de seguridad
 });
 
-watch(filters, debounce(() => {
+const updateParams = () => {
     const queryParams: any = {};
     for (const key in filters.value) {
         const value = filters.value[key as keyof typeof filters.value];
@@ -99,6 +146,10 @@ watch(filters, debounce(() => {
         }
     }
     router.get('/oficios', queryParams, { preserveState: true, replace: true });
+};
+
+watch(filters, debounce(() => {
+    updateParams();
 }, 300), { deep: true });
 
 const sortBy = (payload: { column: string, direction: 'asc' | 'desc' }) => {
@@ -107,12 +158,14 @@ const sortBy = (payload: { column: string, direction: 'asc' | 'desc' }) => {
 };
 
 const resetFilters = () => {
+    const currentType = filters.value.tipo;
+    
     filters.value = {
         search: '',
         sort: null,
         direction: null,
         tiene_turno_dgaf: null,
-        tipo: null,
+        tipo: currentType,
         per_page: 8,
         date_from: null,
         date_to: null,
@@ -122,6 +175,9 @@ const resetFilters = () => {
         limite_to: null,
         area_ids: [],
     };
+    
+    // Restaurar columnas default
+    visibleColumns.value = currentType === 'salida' ? columnsSalida : columnsEntrada;
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -139,7 +195,7 @@ const breadcrumbs: BreadcrumbItem[] = [
       <div class="flex items-end space-x-2 pl-2">
         
         <button 
-            @click="currentTab = 'entrada'"
+            @click="changeTab('entrada')" 
             class="group relative px-6 py-3 text-sm font-medium rounded-t-xl border-t border-l border-r transition-all duration-200 ease-in-out flex items-center gap-2"
             :class="[
                 currentTab === 'entrada' 
@@ -149,12 +205,11 @@ const breadcrumbs: BreadcrumbItem[] = [
         >
             <FolderInput class="w-4 h-4" :class="{ 'text-blue-500': currentTab === 'entrada' }" />
             Entrada
-            
             <div v-if="currentTab === 'entrada'" class="absolute top-0 left-0 w-full h-1 bg-blue-500 rounded-t-xl"></div>
         </button>
 
         <button 
-            @click="currentTab = 'salida'"
+            @click="changeTab('salida')"
             class="group relative px-6 py-3 text-sm font-medium rounded-t-xl border-t border-l border-r transition-all duration-200 ease-in-out flex items-center gap-2"
             :class="[
                 currentTab === 'salida' 
@@ -164,7 +219,6 @@ const breadcrumbs: BreadcrumbItem[] = [
         >
             <FolderOutput class="w-4 h-4" :class="{ 'text-purple-500': currentTab === 'salida' }" />
             Salida
-
             <div v-if="currentTab === 'salida'" class="absolute top-0 left-0 w-full h-1 bg-purple-500 rounded-t-xl"></div>
         </button>
       </div>
@@ -178,23 +232,24 @@ const breadcrumbs: BreadcrumbItem[] = [
                 <Search class="h-5 w-5 text-gray-400" />
               </div>
             </div>
+
             <div class="flex items-center space-x-2">
                 <div class="relative">
                     <details class="group">
                         <summary class="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md cursor-pointer">
                             Columnas <ChevronDown class="w-4 h-4 group-open:rotate-180 transition-transform"/>
                         </summary>
-                        <div class="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-md shadow-lg z-50">
-                            <div class="p-2 grid grid-cols-2 gap-2">
-                                <label v-for="col in allColumns" :key="col.key" class="flex items-center space-x-2 text-sm">
-                                    <input type="checkbox" :value="col.key" v-model="visibleColumns" class="rounded"/>
+                        <div class="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-md shadow-lg z-50 max-h-96 overflow-y-auto">
+                            <div class="p-2 grid grid-cols-1 gap-2">
+                                <label v-for="col in allColumns" :key="col.key" class="flex items-center space-x-2 text-sm px-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                                    <input type="checkbox" :value="col.key" v-model="visibleColumns" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"/>
                                     <span>{{ col.label }}</span>
                                 </label>
                             </div>
                         </div>
                     </details>
                 </div>
-                <button @click="resetFilters" class="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700" title="Resetear filtros y ordenamiento">
+                <button @click="resetFilters" class="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700" title="Resetear filtros">
                     <RefreshCw class="w-5 h-5" />
                 </button>
             </div>
@@ -208,6 +263,6 @@ const breadcrumbs: BreadcrumbItem[] = [
             @sort="sortBy"
           />
       </div>
-      </div>
+    </div>
   </AppLayout>
 </template>

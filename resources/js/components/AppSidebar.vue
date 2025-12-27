@@ -8,6 +8,7 @@ import { LayoutDashboard, FilePlus2, House, Search, Building2, FolderArchive, Fi
 import AppLogo from './AppLogo.vue';
 import {index} from '@/routes/areas';
 import * as oficios from '@/routes/oficios';
+import * as expedientes from '@/routes/expedientes';
 
 // Obtén la función para alternar y el estado de la barra lateral
 const { toggleSidebar, state } = useSidebar();
@@ -25,7 +26,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Expedientes',
-        href: '/expedientes',
+        href: expedientes.index(),
         icon: FolderArchive,
     },
     {

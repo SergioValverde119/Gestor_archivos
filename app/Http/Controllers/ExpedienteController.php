@@ -95,7 +95,13 @@ class ExpedienteController extends Controller
     {
         // $this->authorize('view', $expediente);
 
-        $expediente->load(['areas', 'oficios.documentoPrincipal', 'oficios.recibidoPor:id,name']);
+        // CORRECCIÓN: Cargamos 'oficios.documentos' en lugar de 'oficios.documentoPrincipal'
+        // Esto permite que el atributo calculado del modelo funcione correctamente.
+        $expediente->load([
+            'areas', 
+            'oficios.documentos', // <--- CAMBIO AQUÍ
+            'oficios.recibidoPor:id,name'
+        ]);
 
         return Inertia::render('Expedientes/Show', [
             'expediente' => $expediente,
