@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type User } from '@/types';
+import { type BreadcrumbItem, type User } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed, ref, onMounted, watch } from 'vue';
 import axios from 'axios'; 

@@ -27,6 +27,7 @@ const form = useForm({
 });
 
 const submit = () => {
+    // Calculamos la URL fuera para evitar conflictos de tipado
     const url = oficioRoutes.update({ oficio: props.oficio.id }) as unknown as string;
 
     form.put(url, {
@@ -61,7 +62,7 @@ const submit = () => {
 
             <div v-if="showSuccessMessage" class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mx-8 mt-6 rounded flex justify-between">
                 <span>¡Oficio de salida actualizado correctamente!</span>
-                <button @click="showSuccessMessage = false"><X class="w-4 h-4"/></button>
+                <button @click="showSuccessMessage = false" type="button"><X class="w-4 h-4"/></button>
             </div>
 
             <div v-if="form.hasErrors" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mx-8 mt-6 rounded">
@@ -75,19 +76,19 @@ const submit = () => {
                     
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Destinatario (¿A quién va?)</label>
-                        <input v-model="form.destinatario" type="text" class="w-full pl-4 pr-4 py-3 rounded-lg border-gray-300 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-lg font-medium" />
+                        <input v-model="form.destinatario" type="text" class="w-full pl-4 pr-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-lg font-medium" />
                         <p v-if="form.errors.destinatario" class="text-red-600 text-sm mt-1">{{ form.errors.destinatario }}</p>
                     </div>
 
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Asunto</label>
-                        <input v-model="form.asunto" type="text" class="w-full rounded-lg border-gray-300 dark:bg-gray-700 focus:border-indigo-500 focus:ring-indigo-500" />
+                        <input v-model="form.asunto" type="text" class="w-full rounded-lg border-gray-300 dark:bg-gray-800 focus:border-indigo-500 focus:ring-indigo-500" />
                         <p v-if="form.errors.asunto" class="text-red-600 text-sm mt-1">{{ form.errors.asunto }}</p>
                     </div>
 
                     <div class="bg-indigo-50 dark:bg-gray-700/30 p-4 rounded-lg border border-indigo-100 dark:border-gray-600">
                          <label class="block text-sm font-bold text-indigo-700 dark:text-indigo-300 mb-2">Respuesta a Oficio de Entrada</label>
-                         <select v-model="form.oficio_respuesta_id" class="w-full rounded-md border-indigo-200 dark:bg-gray-700">
+                         <select v-model="form.oficio_respuesta_id" class="w-full rounded-md border-indigo-200 focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700">
                              <option :value="null">-- No aplica (Oficio Inicial) --</option>
                              <option v-for="op in oficiosPosibles" :key="op.id" :value="op.id">
                                  [Entrada #{{ op.folio_interno }}] {{ op.asunto }}
@@ -96,7 +97,7 @@ const submit = () => {
                     </div>
 
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
+                        <label class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
                             <AlignLeft class="w-4 h-4 text-gray-400"/> Cuerpo del Oficio
                         </label>
                         <textarea v-model="form.descripcion" rows="6" class="w-full rounded-lg border-gray-300 dark:bg-gray-700 resize-none focus:border-indigo-500 focus:ring-indigo-500"></textarea>
@@ -124,7 +125,7 @@ const submit = () => {
                     </div>
 
                     <div class="bg-gray-50 dark:bg-gray-700/30 p-5 rounded-xl border border-gray-100 dark:border-gray-600">
-                        <label class="block text-sm font-bold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
+                        <label class="text-sm font-bold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
                             <Building2 class="w-4 h-4 text-indigo-500"/> Copia a Áreas
                         </label>
                         <select v-model="form.area_ids" multiple class="w-full rounded-lg border-gray-300 dark:bg-gray-700 h-40 text-sm">

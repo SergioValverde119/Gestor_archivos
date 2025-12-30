@@ -4,6 +4,7 @@ import { ref } from 'vue';
 import { Save, X, FileInput, Calendar, User, AlertTriangle, Building2, AlignLeft } from 'lucide-vue-next';
 import * as oficioRoutes from '@/routes/oficios';
 
+// Props con "any" para evitar conflictos de tipado profundo en el objeto Oficio
 const props = defineProps<{
     oficio: any;
     areas: any[];
@@ -11,6 +12,7 @@ const props = defineProps<{
     expedientes: any[];
 }>();
 
+// Estado para mensajes de feedback local
 const showSuccessMessage = ref(false);
 
 const form = useForm({
@@ -18,19 +20,24 @@ const form = useForm({
     remitente: props.oficio.remitente,
     asunto: props.oficio.asunto,
     descripcion: props.oficio.descripcion,
+    // Fechas seguras
     fecha_recepcion: props.oficio.fecha_recepcion ? String(props.oficio.fecha_recepcion).split('T')[0] : '',
     fecha_limite: props.oficio.fecha_limite ? String(props.oficio.fecha_limite).split('T')[0] : '',
     prioridad: props.oficio.prioridad || 'Ordinario',
     status: props.oficio.status || 'Pendiente',
+    // DGAF
     tiene_turno_dgaf: Boolean(props.oficio.tiene_turno_dgaf),
     folio_turno_dgaf: props.oficio.folio_turno_dgaf,
     fecha_turno_dgaf: props.oficio.fecha_turno_dgaf ? String(props.oficio.fecha_turno_dgaf).split('T')[0] : '',
+    // Relaciones
     expediente_id: props.oficio.expediente_id,
     recibido_por_user_id: props.oficio.recibido_por_user_id,
     area_ids: props.oficio.areas ? props.oficio.areas.map((a: any) => a.id) : [],
 });
 
 const submit = () => {
+    // CORRECCIÓN TS2589:
+    // Calculamos la URL fuera y la casteamos a string para romper la inferencia profunda
     const url = oficioRoutes.update({ oficio: props.oficio.id }) as unknown as string;
 
     form.put(url, {
@@ -40,7 +47,7 @@ const submit = () => {
             setTimeout(() => showSuccessMessage.value = false, 3000);
         },
         onError: (errors) => {
-            console.error("Errores:", errors);
+            console.error("Errores de validación:", errors);
         }
     });
 };
@@ -75,7 +82,7 @@ const submit = () => {
 
             <div v-if="form.hasErrors" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mx-8 mt-6 rounded shadow-sm">
                 <p class="font-bold">Error al guardar</p>
-                <p class="text-sm">Revisa los campos en rojo.</p>
+                <p class="text-sm">Por favor revisa los campos marcados en rojo.</p>
             </div>
 
             <div class="p-8 grid grid-cols-1 md:grid-cols-12 gap-8">
@@ -90,7 +97,7 @@ const submit = () => {
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Folio Externo</label>
+                            <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Folio Externo (Papel)</label>
                             <input v-model="form.folio_externo" type="text" class="w-full rounded-lg border-gray-300 dark:bg-gray-800 focus:border-blue-500 focus:ring-blue-500" />
                             <p v-if="form.errors.folio_externo" class="text-red-600 text-sm mt-1">{{ form.errors.folio_externo }}</p>
                         </div>
@@ -122,7 +129,7 @@ const submit = () => {
                     </div>
 
                     <div>
-                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
+                        <label class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
                             <AlignLeft class="w-4 h-4 text-gray-400"/> Descripción
                         </label>
                         <textarea v-model="form.descripcion" rows="4" class="w-full rounded-lg border-gray-300 dark:bg-gray-700 resize-none focus:border-blue-500 focus:ring-blue-500"></textarea>
@@ -176,7 +183,7 @@ const submit = () => {
                     </div>
 
                     <div class="bg-gray-50 dark:bg-gray-700/30 p-5 rounded-xl border border-gray-100 dark:border-gray-600">
-                        <label class="block text-sm font-bold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
+                        <label class="text-sm font-bold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
                             <Building2 class="w-4 h-4 text-blue-500"/> Áreas Asignadas
                         </label>
                         <select v-model="form.area_ids" multiple class="w-full rounded-lg border-gray-300 dark:bg-gray-700 h-40 text-sm">
