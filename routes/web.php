@@ -2,9 +2,11 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\Log;
 
 Route::middleware(['auth', 'verified'])->group(function () {
 Route::get('/', function () {
+    Log::info('¡Prueba de log diario exitosa!');
     return Inertia::render('Welcome');
 })->name('home');
 });
