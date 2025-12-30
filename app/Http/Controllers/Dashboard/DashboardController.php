@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use App\Models\Oficio;
 use App\Models\Area;
+use Carbon\Carbon; // <--- ¡ESTA FALTABA!
 
 class DashboardController extends Controller
 {
@@ -27,14 +28,14 @@ class DashboardController extends Controller
             $data['totalPendientes'] = Oficio::where('status', 'Pendiente')->count();
             
             $data['totalVencidos'] = Oficio::where('status', '!=', 'Resuelto')
-                                        ->whereNotNull('fecha_limite')
-                                        ->whereDate('fecha_limite', '<', today())
-                                        ->count();
+                                            ->whereNotNull('fecha_limite')
+                                            ->whereDate('fecha_limite', '<', today())
+                                            ->count();
             
             // --- NUEVO: KPIs de Estado General ---
             $data['totalUrgentes'] = Oficio::where('status', 'Pendiente')
-                                        ->where('prioridad', 'Urgente')
-                                        ->count();
+                                            ->where('prioridad', 'Urgente')
+                                            ->count();
             
             $data['nuevosHoy'] = Oficio::whereDate('created_at', today())->count();
             
@@ -47,7 +48,7 @@ class DashboardController extends Controller
 
             // --- NUEVO: Análisis de Carga de Trabajo y Vencidos (Minería de Datos) ---
             $baseQuery = DB::table('areas')
-                ->join('area_expediente', 'areas.id', '=', 'area_expediente.area_id') // <-- CORREGIDO
+                ->join('area_expediente', 'areas.id', '=', 'area_expediente.area_id')
                 ->join('expedientes', 'area_expediente.expediente_id', '=', 'expedientes.id')
                 ->join('oficios', 'expedientes.id', '=', 'oficios.expediente_id');
             
@@ -84,46 +85,99 @@ class DashboardController extends Controller
 
             // --- Consultas para la Vista de Jefe de Área ---
             $data['pendientesEnArea'] = (clone $baseAreaQuery)
-                                        ->where('status', 'Pendiente')
-                                        ->count();
+                                            ->where('status', 'Pendiente')
+                                            ->count();
             
             $data['vencidosEnArea'] = (clone $baseAreaQuery)
-                                        ->where('status', '!=', 'Resuelto')
-                                        ->whereNotNull('fecha_limite')
-                                        ->whereDate('fecha_limite', '<', today())
-                                        ->count();
-                                        
+                                            ->where('status', '!=', 'Resuelto')
+                                            ->whereNotNull('fecha_limite')
+                                            ->whereDate('fecha_limite', '<', today())
+                                            ->count();
+                                            
             // --- NUEVO: KPIs de Jefe de Área ---
             $data['urgentesEnArea'] = (clone $baseAreaQuery)
-                                        ->where('status', 'Pendiente')
-                                        ->where('prioridad', 'Urgente')
-                                        ->count();
+                                            ->where('status', 'Pendiente')
+                                            ->where('prioridad', 'Urgente')
+                                            ->count();
 
             $data['nuevosHoyEnArea'] = (clone $baseAreaQuery)
-                                        ->whereDate('created_at', today())
-                                        ->count();
+                                            ->whereDate('created_at', today())
+                                            ->count();
 
             // A. Para las Gráficas (filtrado por área)
             $data['entradasVsSalidas'] = (clone $baseAreaQuery)
-                                           ->select('tipo', DB::raw('count(*) as total'))
-                                           ->groupBy('tipo')->get();
+                                             ->select('tipo', DB::raw('count(*) as total'))
+                                             ->groupBy('tipo')->get();
 
             // B. Para las Listas con Scroll (filtrado por área)
             $data['ultimasEntradas'] = (clone $baseAreaQuery)
-                                        ->where('tipo', 'entrada')
-                                        ->latest()->take(15)->get(['id', 'asunto', 'folio_externo', 'created_at']);
+                                            ->where('tipo', 'entrada')
+                                            ->latest()->take(15)->get(['id', 'asunto', 'folio_externo', 'created_at']);
             
             $data['ultimasSalidas'] = (clone $baseAreaQuery)
-                                        ->where('tipo', 'salida')
-                                        ->latest()->take(15)->get(['id', 'asunto', 'folio_salida', 'created_at']);
+                                            ->where('tipo', 'salida')
+                                            ->latest()->take(15)->get(['id', 'asunto', 'folio_salida', 'created_at']);
 
             // C. Para el Mini-Calendario (filtrado por área)
             $data['fechasPendientes'] = (clone $baseAreaQuery)
-                                        ->where('status', 'Pendiente')
-                                        ->whereNotNull('fecha_limite')
-                                        ->distinct()->pluck('fecha_limite');
+                                            ->where('status', 'Pendiente')
+                                            ->whereNotNull('fecha_limite')
+                                            ->distinct()->pluck('fecha_limite');
         }
 
         return Inertia::render('Dashboard', $data);
+    }
+
+    /**
+     * Obtiene el detalle de oficios para el modal del dashboard via AJAX
+     */
+    public function getDetails(Request $request)
+    {
+        $user = Auth::user();
+        $type = $request->query('type'); 
+        $date = $request->query('date'); // <--- Nuevo parámetro para el calendario
+        
+        $query = Oficio::query()->with(['recibidoPor:id,name']);
+
+        // --- LÓGICA DE PERMISOS (Igual que antes) ---
+        if ($user->role === 'jefe_area' && $user->area_id) {
+             $query->whereHas('expediente.areas', fn($q) => $q->where('areas.id', $user->area_id));
+        } elseif (!in_array($user->role, ['admin', 'director'])) {
+             $query->where(function ($q) use ($user) {
+                $q->where('recibido_por_user_id', $user->id)
+                  ->orWhereHas('permissions', fn($p) => $p->where('user_id', $user->id));
+             });
+        }
+
+        // --- FILTROS ---
+        switch ($type) {
+            case 'pendientes':
+                $query->where('status', 'Pendiente');
+                break;
+            case 'vencidos':
+                $query->where('status', '!=', 'Concluido') // Ni Resuelto ni Concluido
+                      ->where('fecha_limite', '<', Carbon::now()->startOfDay());
+                break;
+            case 'urgentes':
+                $query->whereIn('prioridad', ['Urgente', 'Extremadamente Urgente'])
+                      ->where('status', '!=', 'Concluido');
+                break;
+            case 'nuevos':
+                $query->whereDate('created_at', Carbon::today());
+                break;
+            // --- NUEVO CASO PARA EL CALENDARIO ---
+            case 'calendar':
+                if ($date) {
+                    // Busca oficios que vencen ESE día específico
+                    $query->whereDate('fecha_limite', Carbon::parse($date));
+                }
+                break;
+        }
+
+        // --- SIN LÍMITE (take) PARA QUE COINCIDA CON LOS CONTADORES ---
+        $data = $query->latest()
+                      ->get(['id', 'asunto', 'folio_interno', 'folio_externo', 'fecha_limite', 'status', 'prioridad', 'created_at']);
+
+        return response()->json($data);
     }
 }
